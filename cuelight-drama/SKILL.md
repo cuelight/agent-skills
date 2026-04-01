@@ -20,6 +20,12 @@ npm install -g @cuelight/cli
 # 验证安装
 cuelight-cli --help
 
+# 若启动失败、提示平台 binary 缺失或提示执行 doctor，则先修复本地 binary
+cuelight-cli doctor fix-binary
+
+# 修复后重试验证
+cuelight-cli --help
+
 # 如需连接本地服务，请显式覆盖默认地址（默认值为 https://cuelight.app）
 cuelight-cli config set url http://localhost:3000
 
@@ -322,11 +328,14 @@ cuelight-cli video export <episodeId>
 - Season-bound 项目中新增的角色/场景必须同步到 season bindings
 - 优先使用 `--auto-supplement --repair-bindings --wait` 组合
 - 先用 UI 语言理解任务，再落到 CLI 命令，不要反过来主导用户
+- 若 CLI 返回 `BINARY_PACKAGE_MISSING`、`BINARY_NOT_FOUND`、`BINARY_NOT_EXECUTABLE`，或 stderr 明确提示 `Run cuelight-cli doctor fix-binary`，优先指导用户执行 `cuelight-cli doctor fix-binary`
+- CLI 修复完成前，不要继续尝试业务命令；先修复，再重试原命令
 
 ## 故障排查
 
 | 症状 | 原因 | 修复 |
 |------|------|------|
+| CLI 无法启动 / 平台 binary 缺失 | `optionalDependencies` 安装失败，或本地 binary 损坏/无执行权限 | 先执行 `cuelight-cli doctor fix-binary`，修复后重试原命令 |
 | `ECONNREFUSED` / 连接失败 | 服务未启动或地址错误 | `cuelight-cli config get url` 检查地址；确认服务运行 |
 | HTTP 401/403 | API key 错误或未配置 | `cuelight-cli config set api-key <key>` |
 | 圣经生成返回空内容 | 项目缺少基础信息 | 先补充 `--genre`、`--total-episodes` 等字段 |

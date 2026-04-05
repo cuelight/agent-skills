@@ -10,12 +10,12 @@ Skills are packaged instructions and references that extend agent capabilities. 
 
 Drama production workflow guidance for CueLight and AI Drama Factory.
 
-Helps agents work through the real UI-driven flow for short drama production, including visual setup, character and scene preparation, storyboard design, video generation, and export handoff.
+Helps agents work through CueLight drama production via CLI-first workflows, including project inspection, text asset editing, storyboard design, video generation, and export handoff.
 
 **Use when:**
 - Building or operating CueLight drama production workflows
 - Working in director-mode tasks such as visual setup, casting, storyboard design, or video generation
-- Mapping UI actions to `@cuelight/cli` commands
+- Driving project progress through `@cuelight/cli`
 - Continuing an existing drama project instead of restarting from scratch
 
 ## Installation

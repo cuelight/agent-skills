@@ -14,6 +14,9 @@ cuelight-cli style apply <projectId> --preset-id <presetId>
 
 ```bash
 # 直接设置风格提示词
+cuelight-cli bible set-style-prompt <projectId> --file ./style-prompt.txt
+
+# 或直接传参
 cuelight-cli bible update <projectId> --style-prompt "cinematic, moody lighting, shallow depth of field"
 
 # 生成风格参考图

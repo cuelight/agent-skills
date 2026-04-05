@@ -17,6 +17,9 @@ cuelight-cli storyboard generate <episodeId> --auto-supplement --repair-bindings
 生成分镜后**必须**检查绑定状态：
 
 ```bash
+# 查看剧集聚合状态
+cuelight-cli episode status <episodeId> --json
+
 # 查看分镜列表，检查 referenceCharacterIds 和 referenceSceneId
 cuelight-cli storyboard list <episodeId> --json
 
@@ -31,6 +34,9 @@ cuelight-cli storyboard get <storyboardId>
 ```bash
 # 创建单个分镜
 cuelight-cli storyboard create <episodeId> --scene-number 1 --video-prompt "..." --shot-size "medium" --dialogues "角色A:台词" --sound-effects "雨声"
+
+# 外部 agent 从文件导入文字分镜（推荐）
+cuelight-cli storyboard import-text <episodeId> --file ./storyboards.json
 
 # 批量创建（JSON 数据）
 cuelight-cli storyboard batch-create <episodeId> --data-file ./storyboards.json

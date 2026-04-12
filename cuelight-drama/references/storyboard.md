@@ -29,6 +29,32 @@ cuelight-cli storyboard get <storyboardId>
 
 如果存在未绑定的分镜（`referenceCharacterIds` 为空），重新执行带修复参数的生成命令。
 
+## 场景引用约束
+
+CueLight 的 scene binding 不是靠 prompt 里的中文场景名推断的，最终以结构化字段 `referenceSceneId` 为准。
+
+- `本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算有效绑定
+- 若通过 `director update-storyboard` 或服务端工具写分镜，必须同时提供 `referenceSceneId`
+- 当 `referenceSceneId` 已提供时，服务端会把 scene header 自动归一化成 canonical scene tag
+- 这个 canonical scene tag 是**当前分镜组的局部编号**，由当前分镜的 `referenceCharacterIds` 顺序决定；不是全项目固定编号
+- 不要让外部 agent 自己硬猜 `<CharacterN>` 场景标签编号；让服务端根据当前分镜绑定统一生成
+
+推荐写法：
+
+```bash
+cuelight-cli director update-storyboard <storyboardId> \
+  --video-prompt "生成一个由以下 2 个分镜组成的视频。本片段场景设定在：实训教室。..." \
+  --ref-scene-id "<sceneId>" \
+  --ref-character-ids "<charId1>,<charId2>"
+```
+
+不推荐写法：
+
+```bash
+# 只有 prompt 里的裸场景名，没有结构化绑定
+本片段场景设定在：实训教室。
+```
+
 ## 手动创建/编辑
 
 ```bash

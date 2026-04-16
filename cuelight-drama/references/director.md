@@ -17,10 +17,9 @@ cuelight-cli director visual-status <projectId> --json
 cuelight-cli director storyboard-status <episodeId> --json
 cuelight-cli director video-status <episodeId> --json
 cuelight-cli director configure-visuals <projectId> ... --json
-cuelight-cli director set-style-prompt <projectId> --file ./style.txt --json
+cuelight-cli director set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
 cuelight-cli director generate-style-image <projectId> --json
-cuelight-cli director import-storyboards <episodeId> --file ./storyboards.json --json
-cuelight-cli director generate-storyboards <episodeId> --wait --json
+cuelight-cli director import-storyboards <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-<number>.json --json
 cuelight-cli director update-storyboard <storyboardId> ... --json
 cuelight-cli director generate-video <storyboardId> --episode-id <episodeId> --json
 cuelight-cli director batch-generate-videos <episodeId> --json
@@ -76,7 +75,7 @@ cuelight-cli director export-videos <episodeId> --json
   "nextActions": [
     "generate_style_image",
     "set_episode_scripts",
-    "generate_storyboards",
+    "import_storyboards",
     "generate_storyboard_videos"
   ]
 }
@@ -147,7 +146,7 @@ cuelight-cli director export-videos <episodeId> --json
 判断建议：
 
 - `scriptReady=false`：先写剧本，不要急着拆镜
-- `needsStoryboards=true`：先 `director generate-storyboards` 或 `director import-storyboards`
+- `needsStoryboards=true`：先由外部 agent 写本地 storyboard JSON，再执行 `director import-storyboards`
 - `needsBindingRepair=true`：不要直接生成视频
 - `storyboardsWithPrompt < storyboardCount`：说明有分镜缺正文提示词
 
@@ -249,6 +248,9 @@ cuelight-cli director export-videos <episodeId> --json
   - `shotSize`
   - `dialogues`
   - `soundEffects`
+  - `referenceCharacterIds`
+  - `referenceSceneId`
+  - `referencePropIds`
 
 稳定字段：
 
@@ -269,43 +271,19 @@ cuelight-cli director export-videos <episodeId> --json
 
 用途：
 
-- 调用现有分镜生成链路
-- 支持等待、自动补齐和绑定修复
+- 兼容旧链路或开发排障时触发内置分镜生成
+- 不属于公开 `CLI + skill` 组合的常规交付路径
 
-输入参数：
+公开工作流建议：
 
-- `--wait`
-- `--auto-supplement`
-- `--repair-bindings`
-- `--timeout`
-- `--interval`
-- `--max-rounds`
+- 外部 agent 默认先自己写本地 storyboard JSON
+- 常规路径优先使用 `director import-storyboards`
+- 只有在兼容旧项目、排障或专门验证内置分镜链路时，才考虑 `director generate-storyboards`
 
-稳定字段：
+说明：
 
-```json
-{
-  "episodeId": "episode-1",
-  "storyboardCount": 6,
-  "needsSupplement": false,
-  "repairedStoryboardIds": ["sb-2"],
-  "submitted": {
-    "taskId": "task-1"
-  },
-  "task": {
-    "id": "task-1",
-    "status": "completed"
-  },
-  "supplementRounds": []
-}
-```
-
-字段说明：
-
-- `storyboardCount`：命令结束后当前集实际拥有的分镜数
-- `needsSupplement`：即使流程跑完后仍有补充需求
-- `repairedStoryboardIds`：自动修复过绑定的分镜 id 列表
-- `submitted` / `task` / `supplementRounds`：沿用既有生成链路返回
+- 若返回结果中出现 `repairedStoryboardIds`、`needsSupplement` 等字段，可作为排障信息读取
+- 这些字段不应替代公开工作流里的 storyboard 编写与导入步骤
 
 ## 10. `director update-storyboard`
 
@@ -317,11 +295,13 @@ cuelight-cli director export-videos <episodeId> --json
 
 - 至少提供一个可更新字段
 - `--ref-character-ids` 若传入，必须至少解析出一个非空 id
+- `--ref-prop-ids` 若传入，必须至少解析出一个非空 id
 - `--ref-scene-id` 若传入，不能为空字符串
 - `--dialogues`、`--sound-effects` 若传入，必须是合法 JSON
 - 若 `videoPrompt` 里写了 `本片段场景设定在：实训教室。` 这类裸场景名，而没有同时提供 `referenceSceneId`，服务端会返回校验错误
-- 若同时提供了 `referenceSceneId`，服务端会把 scene header 自动归一化成 canonical scene tag
-- 该 scene tag 编号取决于**当前分镜自身的绑定资源顺序**：先是 `referenceCharacterIds`，再是场景；外部 agent 不需要也不应该自己猜 `<CharacterN>`
+- 若 `videoPrompt` 中使用了对当前镜头有实质影响的 `<PropN>`，建议同时提供 `referencePropIds`
+- 若同时提供了 `referenceSceneId`，服务端会把 scene header 自动归一化成本镜本地的 `<CharacterN>(场景名)`
+- 场景持久化标签复用本镜本地、编号接续角色的 `<CharacterN>` 槽位；外部 agent 不需要再猜全局 scene tag
 
 输出契约：
 

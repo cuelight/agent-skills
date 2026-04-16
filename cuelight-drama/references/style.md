@@ -13,18 +13,34 @@ cuelight-cli style apply <projectId> --preset-id <presetId>
 ## 自定义风格
 
 ```bash
-# 直接设置风格提示词
-cuelight-cli bible set-style-prompt <projectId> --file ./style-prompt.txt
+# 主路径：用 director 写回风格提示词
+cuelight-cli director set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt
 
-# 或直接传参
-cuelight-cli bible update <projectId> --style-prompt "cinematic, moody lighting, shallow depth of field"
-
-# 生成风格参考图
-cuelight-cli bible generate-style-image <projectId> --prompt "cyberpunk city at night"
+# 主路径：生成风格参考图
+cuelight-cli director generate-style-image <projectId> --prompt "仿真人宅院短剧海报感主视觉，暖色灯火与木质厅堂形成层次，ensemble cast 构图强调门第压迫与人物对峙。"
 
 # 应用自定义风格（提示词+参考图）
 cuelight-cli style apply <projectId> --style-prompt "..." --ref-image "https://..."
 ```
+
+## 底层 fallback
+
+```bash
+# 底层设置风格提示词
+cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt
+
+# 或直接传参
+cuelight-cli bible update <projectId> --style-prompt "仿真人短剧质感，人物肤质写实，室内以 soft diffused light 为主，边缘保留轻微 rim lighting，画面保持 shallow depth of field。"
+
+# 底层生成风格参考图
+cuelight-cli bible generate-style-image <projectId> --prompt "仿真人宅院短剧海报感主视觉，暖色灯火与木质厅堂形成层次，ensemble cast 构图强调门第压迫与人物对峙。"
+```
+
+写法规则：
+
+- `stylePrompt` 使用中文自然句，保留必要英文术语，如 `soft diffused light`、`rim lighting`
+- 不再把纯英文逗号词串当默认写法
+- 重点写整体质感、光线、色调、构图倾向和题材气质
 
 ## 风格模板管理
 

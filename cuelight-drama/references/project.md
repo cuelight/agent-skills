@@ -65,16 +65,22 @@ cuelight-cli source list <projectId> --json
 cuelight-cli source get-original <projectId> <documentId> --json
 cuelight-cli project update <projectId> --total-episodes <n> --duration <sec>
 cuelight-cli season update <projectId> <seasonId> --planned-episodes <n>
-cuelight-cli season update <projectId> <seasonId> --proposal "..." --design "..."
+cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
+cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
 ```
 
 ### 改编模式（adaptation）
 
 改编模式下，外部 agent 也默认是主创作者：
 
-- 先读 source / draft / scope / current season
+- 先读 source 原文、draft 的结构化返回、project/season 当前状态
 - 自己写 proposal / design / worldView / 角色 / 场景 / 分集 / 正文
 - 不默认调用系统内置 proposal/design/script 生成
+
+说明：
+
+- `scope` / `suggestions` 以 `source draft get --json` 的返回结构为准
+- 不要把 `scope` 理解成一个单独的 CLI 命令
 
 推荐命令链：
 
@@ -82,7 +88,8 @@ cuelight-cli season update <projectId> <seasonId> --proposal "..." --design "...
 cuelight-cli project status <projectId> --json
 cuelight-cli season status <projectId> <seasonId> --json
 cuelight-cli source list <projectId> --json
-cuelight-cli season update <projectId> <seasonId> --proposal "..." --design "..."
+cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
+cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
 ```
 
 ## 项目管理
@@ -117,5 +124,7 @@ cuelight-cli season list <projectId>
 cuelight-cli season status <projectId> <seasonId> --json
 
 # 更新当前季的 proposal / design / 集数规划
-cuelight-cli season update <projectId> <seasonId> --planned-episodes <n> --proposal "..." --design "..."
+cuelight-cli season update <projectId> <seasonId> --planned-episodes <n>
+cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
+cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
 ```

@@ -25,6 +25,8 @@ cuelight-cli character update <projectId> <characterId> --name "新名" --descri
 
 ## 生成参考图/视频/语音
 
+普通 `referenceImageUrl` 参考图可被短剧 Agent 和制片台共同使用；角色头部四视图、头部十二视图、全身四视图等专业规范图属于制片台资产流程，优先看 `references/studio.md`，不要混入短剧 Agent 的导演阶段判断。
+
 ```bash
 # 批量生成缺失参考图
 cuelight-cli character batch-generate-images <projectId>

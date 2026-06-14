@@ -23,6 +23,8 @@ cuelight-cli prop update <projectId> <propId> \
 
 ## 生成参考图
 
+普通 `referenceImageUrl` 参考图可被短剧 Agent 和制片台共同使用；道具六视图属于制片台专业资产流程，优先看 `references/studio.md`，不要混入短剧 Agent 的导演阶段判断。
+
 ```bash
 # 批量生成缺失参考图
 cuelight-cli prop batch-generate-images <projectId>

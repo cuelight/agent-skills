@@ -1,47 +1,40 @@
-# 场景管理
-
-## 创建场景（主路径）
+# Scene
 
 ```bash
-# 手动创建
-cuelight-cli scene create <projectId> --name "霓虹街道" --description "..." --base-prompt "夜间街道纵深清晰，霓虹招牌与潮湿路面形成反光层次，街道左右店铺布局明确，wide shot 展示空间关系与行进方向。" --ref-image "https://..."
-
-# 更新已有场景
-cuelight-cli scene update <projectId> <sceneId> --name "新名" --description "..." --base-prompt "..."
+cuelight-cli scene list <projectId> --json
+cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
+cuelight-cli scene update <projectId> <sceneId> --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
 ```
 
-写法规则：
+## 内容要求
 
-- `name`、`description`、`basePrompt` 默认由外部 agent 自己编写
-- `basePrompt` 使用中文自然句，保留必要英文术语，如 `wide shot`
-- 写场景的基准状态，聚焦结构、布局、基础光线和空间方向
-- 不写具体剧情人物，不把场景 prompt 写成情节片段
+场景 description 应包含：
 
-## 内置文本生成说明
+- 剧情用途：承载哪些冲突、关系或信息揭露。
+- 复用范围：哪些集或哪些类型场面会反复使用。
+- 调度重点：人物可进入、躲藏、对峙、观察的位置。
 
-- 场景文本生成能力属于内部旧链路，不属于公开 `CLI + skill` 工作流
-- 外部 agent 默认自己写 `description` 和 `basePrompt`，再通过 `scene create/update` 落库
-- 不要把 `scene generate` 当成常规兜底或默认备选
+不要在 description 中写 `basePrompt：...` 或视觉提示词字段标签。
 
-## 生成参考图
+## BasePrompt
 
-普通 `referenceImageUrl` 参考图可被短剧 Agent 和制片台共同使用；场景六视图属于制片台专业资产流程，优先看 `references/studio.md`，不要混入短剧 Agent 的导演阶段判断。
+场景 `basePrompt` 是可复用取景地的视觉基准状态，应包含：
 
-```bash
-# 批量生成缺失参考图
-cuelight-cli scene batch-generate-images <projectId>
+- 空间结构：入口、主行动区、遮挡物、前后景。
+- 时代/行业感：建筑、家具、设备、材质。
+- 光线：自然光、人工光、夜景、阴影方向。
+- 可调度区域：人物可以站、坐、进入、躲藏、对峙的位置。
+- 可复用视觉符号：门、屏风、讲台、病床、监控屏、窗等。
+- 禁忌项：不该出现的时代元素或现代设备。
 
-# 单个场景生成参考图
-cuelight-cli scene generate-image <projectId> <sceneId>
+好的写法：
 
-# 等待任务完成
-cuelight-cli ai tasks <projectId>
+```text
+侯府寿安堂的日间内景，厅堂纵深清晰，木质屏风与案几分区明确，暖色自然光从侧窗落入，wide shot 展示礼序空间与主次座位。
 ```
 
-## 查看和管理
+避免：
 
-```bash
-cuelight-cli scene list <projectId>
-cuelight-cli scene get <projectId> <sceneId>
-cuelight-cli scene delete <projectId> <sceneId>
-```
+- 只写“古代大厅”“现代办公室”。
+- 把单场剧情动作写进场景基准状态。
+- 没有可调度空间，导致后续分镜只能写人物特写。

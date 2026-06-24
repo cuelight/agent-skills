@@ -1,47 +1,40 @@
-# 圣经（世界观）管理
-
-## 外部 Agent 写回（主路径）
+# Bible
 
 ```bash
-# 先读取当前 bible
 cuelight-cli bible get <projectId> --json
-
-# 从文件覆盖世界观（推荐）
-cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt
-
-# 从文件覆盖风格提示词（推荐）
-cuelight-cli director set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt
+cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt --json
+cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
 ```
 
-默认原则：
+## WorldView
 
-- `worldView`、`stylePrompt` 默认由外部 agent 自己创作，再通过 CLI 写回
-- `director set-style-prompt` 是公开工作流里的风格写回主路径
-- 不要默认把内置 bible 生成当主路径
+`worldView` 写稳定设定、人物关系、规则和叙事基调，不写一次性剧情复述。
 
-## 直接编辑与底层 fallback
+建议结构：
 
-```bash
-# 修改世界观
-cuelight-cli bible update <projectId> --world-view "赛博朋克都市，霓虹灯映照的雨夜街道"
+- 世界背景：时代、阶层、行业、家庭/组织结构。
+- 规则约束：身份制度、能力边界、社会规则、职业规则。
+- 核心关系：主角与关键人物的利益、情感、对抗关系。
+- 冲突来源：造成持续戏剧张力的结构性矛盾。
+- 禁忌边界：不能随意改动的事实、设定或关系。
 
-# 底层修改风格提示词
-cuelight-cli bible update <projectId> --style-prompt "仿真人短剧质感，克制调色，人物边缘保留 rim lighting，室内采用 soft diffused light，画面强调门第秩序与压迫感。"
+## StylePrompt
 
-# 修改视觉模式
-cuelight-cli bible update <projectId> --visual-mode improv|library|null
+`stylePrompt` 写统一视觉风格，中文为主，可保留英文镜头与灯光术语。
 
-# 启用自动附加资源
-cuelight-cli bible update <projectId> --auto-attach-assets
+必须覆盖：
+
+- 画幅和构图：如竖屏 9:16、近身压迫感、人物优先。
+- 影调和色彩：暖冷关系、饱和度、对比度。
+- 光线：soft diffused light、rim lighting、夜景霓虹、自然侧光等。
+- 镜头质感：写实短剧、电影感、手持轻微晃动、稳定推近等。
+- 服化道方向：时代材质、色彩等级、阶层差异。
+- 禁忌项：过度卡通、过度磨皮、低清、错误时代元素等。
+
+示例：
+
+```text
+仿真人短剧质感，竖屏 9:16，人物近景优先，写实肤质与克制调色。室内以 soft diffused light 为主，人物边缘保留轻微 rim lighting；外景使用自然侧光和浅景深。服化道强调阶层差异，避免卡通化、过度磨皮、低清纹理和错误时代元素。
 ```
 
-## 内置生成说明
-
-- bible 文本生成能力属于内部旧链路，不属于公开 `CLI + skill` 工作流
-- 外部 agent 不要把 `bible generate` 当成常规兜底或默认备选
-- 若必须验证内部能力，应明确切到开发/排障语境，而不是继续沿用本 skill 主路径
-
-补充规则：
-
-- `worldView` 正文正常使用中文
-- `stylePrompt` 使用中文自然句，保留必要英文专业术语
+写入后用 `cuelight-cli project status <projectId> --json` 核验。

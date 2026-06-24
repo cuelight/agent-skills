@@ -1,130 +1,68 @@
-# 项目管理
+# Project
 
-## 手动创建
-
-```bash
-cuelight-cli project create --title "项目名称" --genre "短剧" --total-episodes <episodes> --duration <seconds>
-```
-
-记录返回的 `projectId`，后续所有操作都需要它。
-
-说明：
-
-- 这个入口适合没有 source draft 的纯手动建项目
-- `CLI + skill` 路线下，文字内容仍默认由外部 agent 自己创作
-- 若项目是 `my_script`，这里的 `totalEpisodes` / `duration` 也应先由外部 agent 基于原稿容量判断得出，不要默认填 `10 集`
-
-## 先检查项目状态
+项目命令必须在绑定工作区内执行，创建项目除外。
 
 ```bash
-# 推荐外部 agent 先查聚合状态
+cuelight-cli project create --title "项目名" --json
+cuelight-cli workspace bind --project-id <projectId> --root <workspacePath>
+cuelight-cli workspace current --json
+cuelight-cli project update <projectId> --total-episodes <n> --duration <seconds> --json
 cuelight-cli project status <projectId> --json
-
-# 查看项目详情
-cuelight-cli project get <projectId> --json
+cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/proposal.txt --json
+cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/design.txt --json
 ```
 
-## 从小说/剧本导入
+## 工作区规则
+
+- 创建项目后立即绑定工作区。
+- 后续显式 projectId 必须等于绑定项目。
+- 不从本地目录名、mock 数据、最近项目或置顶项目推断项目。
+- `./.cuelight/workspace.json` 不保存 API Key。
+
+## 制作参数
+
+原稿拆解后必须把计划集数和单集秒数写入结构化项目字段，不只写在 design 文本里。
 
 ```bash
-# 上传源文档
-cuelight-cli source draft create-from-file --title "小说名" --file ./novel.txt --goal scope_planning
-
-# 查看 draft 详情
-cuelight-cli source draft get <draftId> --json
-
-# 查看分析建议后确认（suggestion-index 从返回结果中选取）
-cuelight-cli source draft confirm <draftId> --suggestion-index 0
-
-# 用已确认 draft 物化项目
-cuelight-cli project create --title "项目名称" --source-draft-id <draftId> --json
+cuelight-cli project update <projectId> --total-episodes 12 --duration 90 --json
 ```
 
-### 原稿模式（my_script）
+规则：
 
-原稿模式下，外部 agent 的主路径是：
+- `totalEpisodes` 写计划完整剧集数，不是当前已创建剧集数。
+- `duration` 写单集生产目标秒数；如果设计文本是 `60-90 秒`，结构化字段默认写较高目标 `90`。
+- 写入后用 `project status --json` 检查 `planning.totalEpisodes` 和 `planning.durationPerEpisode`。
 
-1. 用 CLI 读取原稿与项目状态
-2. 自己判断剧情容量、推荐集数和单集时长
-3. 自己写 proposal / design / worldView / 角色 / 场景 / outline / script
-4. 再通过 CLI 落库
+## Proposal
 
-关键原则：
+proposal 是给后续拆剧和生产判断用的项目提案，不是简介。
 
-- 不依赖服务端容量推荐作为前提
-- 不默认写成 `10 集`
-- 不把固定短剧档位当作 `my_script` 的前提
+必须覆盖：
 
-推荐命令链：
+- 类型与题材：如古装宅斗、现代甜宠、悬疑反转、亲子教育短视频。
+- 核心卖点：一句话说明用户为什么要看。
+- 主冲突：主角目标、阻力、对抗关系。
+- 爽点/钩子机制：误会、反转、身份揭露、惩戒、情感拉扯等。
+- 目标受众与平台语气：决定节奏、对白密度和画面尺度。
+- 生产边界：主要场景数量、角色规模、是否大量依赖特效或高成本动作。
 
-```bash
-cuelight-cli source draft get <draftId> --json
-cuelight-cli project create --title "项目名称" --source-draft-id <draftId> --json
-cuelight-cli project get <projectId> --json
-cuelight-cli source list <projectId> --json
-cuelight-cli source get-original <projectId> <documentId> --json
-cuelight-cli project update <projectId> --total-episodes <n> --duration <sec>
-cuelight-cli season update <projectId> <seasonId> --planned-episodes <n>
-cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
-cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
-```
+不要写：
 
-### 改编模式（adaptation）
+- 只有宣传语，没有可执行信息。
+- 大段世界观铺陈但没有主冲突。
+- 把每集剧情都塞进 proposal。
 
-改编模式下，外部 agent 也默认是主创作者：
+## Design
 
-- 先读 source 原文、draft 的结构化返回、project/season 当前状态
-- 自己写 proposal / design / worldView / 角色 / 场景 / 分集 / 正文
-- 不默认调用系统内置 proposal/design/script 生成
+design 是项目生产设计，应能指导剧集、角色、场景、分镜继续生成。
 
-说明：
+必须覆盖：
 
-- `scope` / `suggestions` 以 `source draft get --json` 的返回结构为准
-- 不要把 `scope` 理解成一个单独的 CLI 命令
+- 剧集结构：总集数预期、单集时长感、每集结尾钩子方式。
+- 主线推进：开局、升级、反转、高潮、收束。
+- 人物弧光：主角起点、弱点、成长或黑化方向。
+- 关系网络：亲密关系、对抗关系、利益关系。
+- 视觉基调：时代、色彩、镜头距离、质感关键词。
+- 资产复用计划：核心场景、常驻角色、关键道具。
 
-推荐命令链：
-
-```bash
-cuelight-cli project status <projectId> --json
-cuelight-cli season status <projectId> <seasonId> --json
-cuelight-cli source list <projectId> --json
-cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
-cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
-```
-
-## 项目管理
-
-```bash
-# 列表
-cuelight-cli project list
-
-# 查看详情
-cuelight-cli project get <projectId>
-
-# 更新
-cuelight-cli project update <projectId> --title "新名称" --genre "悬疑"
-
-# 删除（⚠️ 不可恢复）
-cuelight-cli project delete <projectId>
-```
-
-## Season 管理
-
-```bash
-# 添加新季
-cuelight-cli season add <projectId> --title "第二季" --planned-episodes <n>
-
-# 切换活动季
-cuelight-cli season switch <projectId> <seasonId>
-
-# 列出所有季
-cuelight-cli season list <projectId>
-
-# 查看某季聚合状态
-cuelight-cli season status <projectId> <seasonId> --json
-
-# 更新当前季的 proposal / design / 集数规划
-cuelight-cli season update <projectId> <seasonId> --planned-episodes <n>
-cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
-cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
-```
+写入后用 `project status` 验证 proposal/design/worldView/stylePrompt 是否非空，并确认 `planning.totalEpisodes/durationPerEpisode` 与 design 声明一致。

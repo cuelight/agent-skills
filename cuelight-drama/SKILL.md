@@ -1,80 +1,54 @@
 ---
 name: cuelight-drama
-description: 短剧制作全链路与制片台工作流指引。当用户提及"短剧"、"做剧"、"drama"、"短剧 Agent"、"导演模式"、"视觉设定"、"选角"、"角色与场景"、"分镜设计"、"制作列表"、"视频素材库"、"影片制作"、"生成视频"、"导出视频"、"制片台"、"Studio Workspace"、"专业制作项目"、"专业资产"、"规范图"、"六视图"等关键词时触发。引导 Agent 通过 `@cuelight/cli`（命令名 `cuelight-cli`）读取项目状态、编辑文字资源并推进项目；Skill 仅负责流程指导。
+description: CueLight 短剧项目本地 Agent 工作流指引。当用户要创建、续作或验收短剧项目，处理项目设定、剧本大纲、剧本文本、角色、场景、道具、分镜脚本、图片或视频任务时触发。Skill 只说明流程和格式规范，不保存当前项目状态。
 ---
 
-这个 Skill 只负责说明 CueLight 的项目推进方法，不提供项目运行时状态。所有状态读取、资源详情查询、文字写回、生成任务提交都必须通过 `cuelight-cli` 完成。
+这个 Skill 只负责说明 CueLight 项目的推进方法和文本/分镜格式。当前项目是谁、工作区根目录在哪里、是否允许写入，都必须由本地工作区和 `cuelight-cli` 提供。
 
 ## 使用原则
 
-- **CLI 是唯一事实入口**：先查状态，再决定下一步
-- **Skill 不承载状态**：不要从 Skill 推断当前项目已经做到哪一步
-- **先区分入口**：制片台模式走 `cuelight-cli studio ...`；短剧 Agent / 导演流程走 `source/project/season/bible/episode/director/storyboard/...`
-- **不要混用主路径**：Studio 是手动制作台，不默认套 `director status`、proposal/design/script 阶段门槛；短剧 Agent 不默认套 Studio 的 text-only storyboard 规则
-- **文字类默认由外部 agent 创作并直写**：proposal、design、worldView、角色、场景、Episode outline/script、Storyboard 文本等，默认都先由外部 agent 自己完成，再通过 CLI 落库
-- **`cuelight-drama` 自带基础 storyboard 模板**：按本 skill 的 JSON 模板就能完成合格落库；`seedance-storyboard` 只是可选增强，用来提升 `videoPrompt` 的导演感和镜头语言
-- **Storyboard 的场景绑定必须走结构化字段**：`本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算最终引用；CueLight 以 `referenceSceneId` 为准，并把场景文案规范成“本镜本地、编号接续角色的 `<CharacterN>(场景名)`”
-- **关键道具同时需要文案层和结构层引用**：文案里可使用 `<PropN>`；若该道具对动作、叙事推进或视觉焦点有实质影响，最终必须同时写入 `referencePropIds`
-- **提示词统一使用中文主叙述**：`stylePrompt`、`basePrompt`、`videoPrompt` 都以中文自然句为主，仅保留英文专业术语和标签，如 `medium shot`、`close-up`、`rim lighting`、`<CharacterN>`、`<PropN>`
-- **默认不使用内置文本生成**：公开 `cli + skill` 组合不依赖 CueLight 内部 chat/agent，也不把文本类内置 AI 当公开能力
-- **生成类走 CueLight 平台能力**：图片、视频、语音仍通过现有 AI 命令提交和轮询；图片/视频开放 CLI 必须显式指定模型，不存在默认内置模型
-- **纯媒体生成走开放 CLI**：用户只要求单张图片、图生图、文生视频或图生视频成品时，直接使用 `image generate` / `video generate` / `task wait`，不要为了纯媒体任务创建项目或进入导演流程
-- **不要默认从头开始**：用户说“继续项目”时，先执行状态命令
-- **内部命令不属于公开工作流**：`cuelight-cli internal ...` 仅供开发/排障，不作为外部 agent 常规路径
+- **先解析工作区**：进入任意工作区后，第一步执行 `cuelight-cli workspace current --json`。
+- **未绑定不执行业务命令**：若没有 `./.cuelight/workspace.json` 或 `currentProjectId` 为空，只能引导用户执行 `cuelight-cli workspace bind --project-id <id> --root <path>`。
+- **禁止猜项目**：不得从目录名、mock 数据、最近项目、置顶项目或历史聊天猜测当前项目。
+- **显式上下文必须一致**：用户明确给出 projectId 时，仍必须与工作区绑定的 `currentProjectId` 一致；不一致时停止并让用户重新绑定或更正参数。
+- **CLI 是唯一事实入口**：读状态、写设定、写剧集、写角色场景道具、写分镜、查任务，都通过 `cuelight-cli`。
+- **业务请求走统一合同**：公开 CLI 命令只依赖项目、剧集、分镜、任务资源，不让 Agent 决策内部历史结构。
+- **文字类默认由本地 Agent 创作并直写**：本地读取用户给的原稿文件，产出 proposal、design、worldView、stylePrompt、episodes、characters、scenes、props、storyboards，再用 CLI 写回。
+- **`cuelight-drama` 自带基础 storyboard 模板**：按本 Skill 的 JSON 模板就能完成合格落库；其他镜头语言资料只作为 `videoPrompt` 增强参考，不改变 CueLight 字段结构。
+- **Storyboard 的场景绑定必须走结构化字段**：`本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算最终引用；CueLight 以 `referenceSceneId` 为准。
+- **关键道具同时需要文案层和结构层引用**：文案里可使用 `<PropN>`；若该道具对动作、叙事推进或视觉焦点有实质影响，最终必须同时写入 `referencePropIds`。
+- **提示词统一使用中文主叙述**：`stylePrompt`、`basePrompt`、`videoPrompt` 都以中文自然句为主，仅保留英文专业术语和标签，如 `medium shot`、`close-up`、`rim lighting`、`<CharacterN>`、`<PropN>`。
+- **Seedance 分镜使用镜头时序**：Seedance 系列 `videoPrompt` 默认使用 `镜头1 / 镜头2 / ...`，不强制每个镜头写精确秒数；`plannedVideoDurationSeconds` 单独写入 4-15 秒，单条最多 8 个镜头。
+- **完整分集必须覆盖目标时长**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和必须等于 `project.durationPerEpisode`；90 秒单集通常拆成 6-9 条 item。
+- **默认不写 BGM**：分镜提示词默认不输出 BGM、配乐、背景音乐或音乐氛围；音乐建议后期添加，只写必要的人声、环境声和动作音效。
+- **默认不提交媒体生成**：除非用户明确要求，不提交图片、视频或语音任务。
+- **纯媒体任务例外**：用户只要求独立图片/视频成品时，可直接使用 `image`、`video`、`task` 命令，不需要项目绑定。
 
-## 入口分流
+## 当前项目上下文
 
-### 制片台模式（Studio）
+必须按以下顺序解析：
 
-触发语义：
-
-- 用户说“制片台”、“Studio Workspace”、“专业制作项目”、“空项目”、“手动做分镜”
-- 用户要补“专业资产”、“规范图”、“角色四视图/十二视图/全身四视图”、“场景六视图”、“道具六视图”
-- 用户明确要在 Studio 中直接创建分镜并出视频
-
-主入口：
+1. 执行 `cuelight-cli workspace current --json`。
+2. 若返回 `currentProjectId`，后续业务命令都使用该项目。
+3. 若未绑定，只允许执行：
 
 ```bash
-cuelight-cli studio project list --json
-cuelight-cli studio project create --title "专业制作项目" --video-ratio 9:16 --photoreal --json
-cuelight-cli studio storyboard create <episodeId> --video-prompt "..." --duration 8 --json
-cuelight-cli studio asset generate-spec <projectId> character <characterId> --asset-kind character_head_closeup_4view --input-mode image_reference --reference-image-url "https://..." --json
-cuelight-cli studio video generate <projectId> <storyboardId> --duration 8 --json
+cuelight-cli workspace bind --project-id <id> --root <workspacePath>
 ```
 
-规则：
+4. 若用户只给了候选项目但没有绑定，先让用户确认并绑定。
+5. 禁止在未绑定工作区中用显式 projectId 操作项目。
 
-- Studio 可以从空项目开始，默认不要求 source draft、proposal、design、Episode script
-- Studio storyboard 可以是 text-only；绑定角色/场景/道具是增强约束，不是提交视频的硬前置
-- Studio 视频生成必须显式带 Studio 语义、模型和时长；优先使用 `cuelight-cli studio video ...`
-- Studio 专业资产优先使用 `cuelight-cli studio asset ...`，不要混到短剧 Agent 的导演阶段判断里
+工作区文件示例：
 
-详见：`references/studio.md`
-
-### 短剧 Agent / 导演流程
-
-触发语义：
-
-- 用户说“短剧 Agent”、“短剧全链路”、“从小说生成”、“原稿改编”、“继续项目”、“导演模式”
-- 用户要推进编剧、Bible、角色场景、剧集正文、导演分镜、绑定修复、整集导出
-
-主入口仍是：
-
-```bash
-cuelight-cli source draft create-from-file ...
-cuelight-cli project status <projectId> --json
-cuelight-cli director status <projectId> --json
-cuelight-cli director storyboard-status <episodeId> --json
-cuelight-cli director import-storyboards <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-<number>.json
-cuelight-cli director batch-generate-videos <episodeId>
+```json
+{
+  "version": 1,
+  "workspaceRoot": "C:\\codes\\cuelight-agent",
+  "currentProjectId": "cuelight",
+  "skill": "cuelight-drama"
+}
 ```
-
-规则：
-
-- 先读状态，再判断阶段
-- 默认由外部 agent 创作并写回文字资源
-- 分镜落库必须关注 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds`
-- 绑定不完整时不要直接进入短剧 Agent 的导演视频生成
 
 ## 环境配置
 
@@ -114,38 +88,40 @@ cuelight-cli project list
 
 说明：
 
-- 默认服务地址是 `https://cuelight.app`，公开工作流不要再设置成 `http://localhost:3000`
-- `config show` 应脱敏显示 API Key；不要把真实 API Key 写入公开日志、issue 或可共享 transcript
-- 若只需要单次命令使用密钥，可用 `CUELIGHT_API_KEY=... cuelight-cli ...` 或 `cuelight-cli --api-key ...`
-- 项目级 `./.cuelight/config.json` 优先于全局配置；如果项目配置里 `apiKey` 为空，可能导致不再回退到全局 key。外部 Agent 不要无故初始化项目级配置
+- 默认服务地址是 `https://cuelight.app`，公开工作流不要默认改成 `http://localhost:3000`。
+- `config show` 应脱敏显示 API Key；不要把真实 API Key 写入公开日志、issue 或可共享 transcript。
+- 若只需要单次命令使用密钥，可用 `CUELIGHT_API_KEY=... cuelight-cli ...` 或 `cuelight-cli --api-key ...`。
+- 工作区绑定文件只保存当前项目，不保存 API Key。
 
 ## 临时文件目录约定
 
-- 所有临时文本/JSON 文件都放在**当前目录**下，但必须按项目分子目录存放
-- 统一使用：`./.cuelight/<project-key>/`
-- `project-key` 规则：
-  - 已有 `projectId` 时用 `<projectId>`
-  - 只有 `draftId` 时用 `draft-<draftId>`
-  - 仅有标题草稿时用 `draft-<sanitized-title>`
+- 所有临时文本/JSON 文件都放在当前工作区的 `./.cuelight/` 下。
+- 当前项目文件统一使用：`./.cuelight/<projectId>/`。
 - 推荐文件布局：
-  - `./.cuelight/<project-key>/world.txt`
-  - `./.cuelight/<project-key>/style-prompt.txt`
-  - `./.cuelight/<project-key>/proposal.txt`
-  - `./.cuelight/<project-key>/design.txt`
-  - `./.cuelight/<project-key>/episodes/episode-<number>-outline.txt`
-  - `./.cuelight/<project-key>/episodes/episode-<number>-script.txt`
-  - `./.cuelight/<project-key>/storyboards/episode-<number>.json`
-  - `./.cuelight/<project-key>/assets/<assetId>.txt`
+  - `./.cuelight/<projectId>/proposal.txt`
+  - `./.cuelight/<projectId>/design.txt`
+  - `./.cuelight/<projectId>/world.txt`
+  - `./.cuelight/<projectId>/style-prompt.txt`
+  - `./.cuelight/<projectId>/characters/<name>-desc.txt`
+  - `./.cuelight/<projectId>/characters/<name>-visual.txt`
+  - `./.cuelight/<projectId>/characters/<name>-voice.txt`
+  - `./.cuelight/<projectId>/scenes/<name>-desc.txt`
+  - `./.cuelight/<projectId>/scenes/<name>-visual.txt`
+  - `./.cuelight/<projectId>/props/<name>-desc.txt`
+  - `./.cuelight/<projectId>/props/<name>-visual.txt`
+  - `./.cuelight/<projectId>/episodes/episode-<number>-outline.txt`
+  - `./.cuelight/<projectId>/episodes/episode-<number>-script.txt`
+  - `./.cuelight/<projectId>/storyboards/episode-<number>.json`
 
 ## 提示词统一写法
 
 以下规则统一适用于 `stylePrompt`、`character.basePrompt`、`scene.basePrompt`、`prop.basePrompt`、`storyboard.videoPrompt`：
 
-- 主体叙述使用中文自然句，不使用纯英文逗号词串作为默认写法
-- 专业摄影、镜头、构图、光影术语保留英文，例如 `medium shot`、`close-up`、`over-the-shoulder`、`rim lighting`
-- 结构化标签保持英文，例如 `<CharacterN>`、`<PropN>`
-- 角色/场景/道具的 `basePrompt` 写“基准状态”，不要写剧情时刻、临时情绪或一次性动作
-- `videoPrompt` 写“当前镜头发生什么”，不要把 JSON 绑定字段混成自然语言说明
+- 主体叙述使用中文自然句，不使用纯英文逗号词串作为默认写法。
+- 专业摄影、镜头、构图、光影术语保留英文，例如 `medium shot`、`close-up`、`over-the-shoulder`、`rim lighting`。
+- 结构化标签保持英文，例如 `<CharacterN>`、`<PropN>`。
+- 角色/场景/道具的 `basePrompt` 写“基准状态”，不要写剧情时刻、临时情绪或一次性动作。
+- `videoPrompt` 写“当前镜头发生什么”，不要把 JSON 绑定字段混成自然语言说明。
 
 示例：
 
@@ -154,39 +130,60 @@ cuelight-cli project list
 - `scene.basePrompt`：`侯府寿安堂的日间内景，厅堂纵深清晰，木质屏风与案几分区明确，暖色自然光从侧窗落入，wide shot 展示礼序空间与主次座位。`
 - `prop.basePrompt`：`一支旧式鎏金簪，簪头花丝纹样细密，金属表面有轻微磨痕，冷暖反光克制，hero shot 展示结构与材质。`
 
-## 纯媒体生成
-
-当用户只要求“生成一张图”“拿这张图改图”“生成一段视频”“用这张图做首帧视频”这类独立媒体产物时，走开放 CLI，不进入短剧项目工作流。
+## 常用命令
 
 ```bash
-# 先查询服务端当前可用模型；--model 无默认值，不要只凭 Skill 示例猜模型
-cuelight-cli image models
-cuelight-cli video models
+cuelight-cli workspace current --json
+cuelight-cli workspace bind --project-id <projectId> --root <workspacePath>
 
-# 文生图；下方模型名只是示例，实际以 image models 返回为准
-cuelight-cli image generate --prompt "赛博朋克城市的猫" --model seedream-5.0-lite --size 16:9 --output out.png
+cuelight-cli project create --title "项目名" --json
+cuelight-cli project update <projectId> --total-episodes <n> --duration <seconds> --json
+cuelight-cli project status <projectId> --json
+cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/proposal.txt --json
+cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/design.txt --json
 
-# 图生图；--image-urls 可传 http(s) URL 或本地文件路径，本地文件由 CLI 自动临时上传
-cuelight-cli image generate --prompt "改成夜景霓虹短剧海报质感" --model seedream-5.0-lite --image-urls ./reference.png --output poster.png
+cuelight-cli bible get <projectId> --json
+cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt --json
+cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
 
-# 文生视频；下方模型名只是示例，实际以 video models 返回为准；默认提交异步任务，随后用 task wait 等待
-TASK=$(cuelight-cli video generate --prompt "日落下的海岸" --model seedance-2-0-fast --duration 5 --aspect-ratio 9:16 --json | jq -r .task_id)
-cuelight-cli task wait "$TASK" --output out.mp4
+cuelight-cli character create <projectId> --name "角色名" --description-file ./.cuelight/<projectId>/characters/role-desc.txt --base-prompt-file ./.cuelight/<projectId>/characters/role-visual.txt --voice-prompt-file ./.cuelight/<projectId>/characters/role-voice.txt --json
+cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
+cuelight-cli prop create <projectId> --name "道具名" --description-file ./.cuelight/<projectId>/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/props/item-visual.txt --json
 
-# 图生视频；本地首帧同样通过 --image-urls 传入并自动临时上传
-cuelight-cli video generate --prompt "镜头从人物正面缓慢推近，雨夜霓虹反射" --model seedance-2-0-fast --image-urls ./first-frame.png --duration 5 --aspect-ratio 9:16 --output out.mp4
+cuelight-cli episode create <projectId> --title "第一集" --number 1 --summary "分集大纲" --json
+cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-outline.txt --json
+cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-script.txt --json
+cuelight-cli episode status <episodeId> --json
+
+cuelight-cli storyboard import-text <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-1.json --json
+cuelight-cli storyboard status <episodeId> --json
+cuelight-cli storyboard get <storyboardId> --json
 ```
 
-约束：
+## 原稿到落库
 
-- 不存在公开 `files upload` 步骤；不要指导用户手工上传引用资源
-- `--image-urls` 是引用资源入口，可用逗号混合多个 URL / 本地路径
-- Seedance 2.0 系列不传 `resolution`，分辨率由平台 SKU 决定
-- 若用户明确要把产物绑定到某个项目、角色、场景、道具或分镜，再切回对应 `director` / `character` / `scene` / `prop` 主路径
+用户给本地文本文件时，不把文件交给平台做草稿流程。Agent 直接读取文件，完成以下本地产物后写回：
+
+- 制作参数：计划总集数、单集秒数
+- 项目 proposal、design
+- Bible 的 worldView、stylePrompt
+- 第一集及后续剧集大纲
+- 第一集剧本文本
+- 角色、场景、道具
+- 第一集分镜 JSON
+
+写作要求：
+
+- 先从原稿判断计划总集数和单集秒数，写回 `project update --total-episodes <n> --duration <seconds>`；若设计文本是“60-90 秒”这类范围，结构化 `duration` 默认写较高生产目标（如 90）。
+- proposal 要说明核心卖点、受众、类型、主冲突、爽点/反转机制和规模边界。
+- design 要说明剧集结构、人物弧光、世界规则、主要关系、单集节奏和可生产约束。
+- worldView 写稳定设定，不写临时剧情复述。
+- outline 写每集“开场钩子 -> 冲突推进 -> 反转/信息揭露 -> 结尾钩子”。
+- script/content 写可拍摄文本，保留人物动作、对白、场景调度和情绪落点。
+- 角色必须分离保存 `description`、`basePrompt`、`voicePrompt`：介绍写身份关系和叙事功能，视觉提示词写稳定外观，音色写稳定声音特征；不要把 `basePrompt：...` 或 `voicePrompt：...` 混进介绍文件。
+- 场景、道具必须分离保存 `description` 和 `basePrompt`：介绍写叙事用途，视觉提示词写可复用基准状态。
 
 ## 基础 Storyboard 模板
-
-`cuelight-drama` 自身提供基础模板，默认先按这个模板写。只有当用户明确需要更强的导演感、Seedance 风格镜头语言或更复杂的时间轴拆解时，才把 `agent-skills/seedance-storyboard` 当作 `videoPrompt` 的可选增强参考。
 
 标准文件：`./.cuelight/<projectId>/storyboards/episode-<number>.json`
 
@@ -195,7 +192,8 @@ cuelight-cli video generate --prompt "镜头从人物正面缓慢推近，雨夜
   {
     "sceneNumber": 1,
     "shotSize": "medium",
-    "videoPrompt": "生成一个由以下 2 个分镜组成的视频。\n本片段场景设定在：<Character2>(赵府荷花池)。\n分镜1 4s：medium shot 先压住池边的静默空气，<Character1>(赵阿萤) 右手按住 <Prop1>(玉佩)，目光停在门口方向，远处传来压低的脚步声。\n分镜2 6s：镜头缓慢推近到 close-up，<Character1>(赵阿萤) 指节逐渐发白，却始终没有松手，空气里只剩钟表轻响和衣料摩擦声。",
+    "plannedVideoDurationSeconds": 12,
+    "videoPrompt": "【素材定义】\n<Character1>(赵阿萤) 是当前角色参考，<Character2>(赵府荷花池) 是当前场景参考，<Prop1>(玉佩) 是关键道具参考。\n【分镜时序】\n镜头1：medium shot 固定机位先压住池边的静默空气，<Character1>(赵阿萤) 站在池边右手缓慢按住 <Prop1>(玉佩)，指腹轻轻收紧、目光停在门口方向，荷花池冷光和门廊阴影把她夹在画面中央，远处传来压低的脚步声。\n镜头2：镜头缓慢推近到 close-up 并只服务她发现异常的情绪压迫，<Character1>(赵阿萤) 指节逐渐发白、肩膀保持克制不动，池边水面反光落在她侧脸和玉佩边缘，空气里只剩钟表轻响和衣料摩擦声。\n【风格画质】\n真人实拍电影写实风格，自然皮肤纹理，真实服装材质，池边冷暖光线克制。",
     "referenceCharacterIds": ["char-1"],
     "referenceSceneId": "scene-1",
     "referencePropIds": ["prop-1"],
@@ -209,413 +207,77 @@ cuelight-cli video generate --prompt "镜头从人物正面缓慢推近，雨夜
 
 字段规则：
 
-- 必填：`sceneNumber`、`shotSize`、`videoPrompt`、`referenceCharacterIds`、`referenceSceneId`
-- 可选：`referencePropIds`、`dialogues`、`soundEffects`
-- `dialogues` 固定为 `{ character, line }[]`
-- `soundEffects` 固定为 `string[]`
-- 一条 shot 对应一个 object，`sceneNumber` 按导入顺序递增
-- `videoPrompt` 持久化后采用“标签+中文名”格式：角色 `<CharacterN>(中文名)`、场景使用本镜本地的 `<CharacterN>(中文名)`、道具 `<PropN>(中文名)`
-- `videoPrompt` 只承担镜头文案；角色、场景、道具的最终绑定分别以 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds` 为准
-- my_script / source_segmented 分镜里，`<CharacterN>(角色名) 说台词：...` 必须逐字复制本集正文中同一角色的一整条原文台词；拆分时间码时也不能把一整句原文台词拆成多个 `说台词`
-- 如果只需要表达某句台词的一部分或语义摘要，写成画面/旁白/声音说明，不要使用 `说台词：`
-- `referencePropIds` 仅在道具对动作、叙事推进或视觉焦点有实质影响时填写，不要求所有分镜都带
-- `seedance-storyboard` 若被使用，只增强 `videoPrompt` 的镜头语言，不改变这里的 JSON 字段和类型
+- 必填：`sceneNumber`、`shotSize`、`videoPrompt`、`referenceCharacterIds`、`referenceSceneId`。
+- 必填：Seedance 项目必须写 `plannedVideoDurationSeconds`，范围 4-15；非 Seedance 建议也写，或让旧 `分镜N Xs` 自动解析。
+- 可选：`referencePropIds`、`dialogues`、`soundEffects`。
+- `dialogues` 固定为 `{ character, line }[]`。
+- `soundEffects` 固定为 `string[]`。
+- 一条 shot 对应一个 object，`sceneNumber` 按导入顺序递增。
+- `videoPrompt` 只承担镜头文案；角色、场景、道具的最终绑定分别以 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds` 为准。
+- 完整分集分镜的 `plannedVideoDurationSeconds` 总和必须等于项目单集目标时长；例如 90 秒单集可拆成 `12 + 12 + 15 + 12 + 15 + 12 + 12`。
+- Seedance `videoPrompt` 推荐三段式：`【素材定义】`、`【分镜时序】`、`【风格画质】`。镜头按事件顺序写 `镜头1` 到最多 `镜头8`。
+- 每个 `镜头N：` 必须按固定顺序写四类信息：运镜或镜头切换方式 -> 主体动作与表情 -> 位置或空间变化 -> 同步声音信息。推荐句式：`镜头N：<运镜/切换方式>，<主体动作与表情>，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
+- 一镜到底也必须补齐四类信息；没有对白时必须写环境声或动作音效，不能只写视觉动作。
+- 4-6 秒可写 1-3 个镜头，7-10 秒可写 2-5 个镜头，11-15 秒可写 3-8 个镜头；一镜到底只写 `镜头1`，不要为了凑数量硬拆。
+- 动作要具体到手、腿、头部、肩背等部位，补充幅度、速度、力度和动作衔接；情绪要外化为眼神、呼吸、肩背、嘴角、手指、停顿等可见细节。
+- 默认不写 BGM、配乐、背景音乐或音乐氛围；只写脚步声、门响、手机提示音、呼吸声、环境声、角色对白或旁白等同步声音。
 
-## 导演稿重写规范
+更完整的分镜时间码、子分镜节奏、绑定和导入规则见 `references/storyboard.md`。
 
-这里把 storyboard 文本明确分成两种交付层级：
+## 纯媒体生成
 
-- **基础稿**：格式合法、绑定正确、可直接落库
-- **导演稿**：在一个 storyboard item 内拆成 **2-3 个子分镜**，强化节奏、反应、对白落点和导演感
-
-默认升级为导演稿的时机：
-
-- 进入导演工作台精修
-- 用户明确要求“更像导演页”“重写分镜脚本”“增强导演感”
-- 单条 `videoPrompt` 已经塞入多个叙事信息点
-- 同一镜头组内同时存在“环境建立 + 动作推进 + 情绪落点/对白落点”
-
-允许保持单分镜的例外：
-
-- 空镜
-- 单一动作展示
-- 单一情绪特写
-- 明确只需要一个视觉落点的短镜头
-
-### 时长决策
-
-- **Wanx 系列**：单条可投递 storyboard item 默认按模型最大 **10s** 规划；10s 是上限，不是把任意原稿时间段压缩成 10s
-- **Seedance 系列**：导演稿按 **5-15s** 编写，由当前分镜组的情节密度决定
-
-Wanx 系列的默认规则：
-
-- 每个 storyboard item 默认最多覆盖 **10s** 原稿跨度
-- 可以根据原稿时间码写成 3s / 5s / 6s / 8s / 10s；不得把 15s、45s 原稿跨度写进一条 `分镜1 10s`
-- 默认优先使用以下节奏：
-  - `4s + 6s`
-  - `3s + 3s + 4s`
-
-Seedance 系列的默认规则：
-
-- `5-6s`：单动作、单情绪、单落点
-- `7-10s`：建立 -> 变化 -> 收束
-- `11-15s`：完整小弧线，但仍控制切镜数量
-- 当 `seedance-storyboard` 被用作增强时，它只增强镜头语言；写回 CueLight 时仍以本 skill 的结构和绑定规则为准
-
-### 原稿时间码拆分规则
-
-原稿里的 `0:00-0:15`、`0:00-0:45` 表示剧情实际覆盖跨度，不是装饰标签。
-
-- 先计算 `end - start = sourceDurationSeconds`
-- 读取当前首选视频模型的 `maxSeconds`；不知道时 Wanx 按 10s 上限处理
-- 如果 `sourceDurationSeconds <= maxSeconds`，该 storyboard item 的子分镜秒数合计必须等于覆盖跨度
-- 如果 `sourceDurationSeconds > maxSeconds`，必须拆成多条连续 storyboard item，每条覆盖时间片 `<= maxSeconds`
-- 最后一段可短于 `maxSeconds`，但最短 3s；不足 3s 时并入前一段
-- 原稿时间码写在 item 级别，例如 `源时间码：0:00-0:10`；item 内仍按导演稿拆成 1-3 条子分镜
-
-强制示例：
-
-- 错误：`分镜1 10s：0:00-0:15...`
-- 正确：第一条 item 写 `源时间码：0:00-0:10`，并在 item 内拆成 `分镜1 4s` + `分镜2 6s`；第二条 item 写 `源时间码：0:10-0:15`，可写 `分镜1 5s` 或按 3s+2s 合理拆分
-- `0:00-0:45` 且 `maxSeconds=10` 时，必须拆成 5 条 item：`0:00-0:10`、`0:10-0:20`、`0:20-0:30`、`0:30-0:40`、`0:40-0:45`；每条 10s item 内仍优先写 4s+6s 或 3s+3s+4s 子分镜
-
-如果 `videoPrompt` 中的时间码跨度超过声明秒数，CLI 验收会判定为 `storyboardTimecodeDurationMismatch`。
-
-原稿时间码只作为保存前校验锚点，不是视频模型生产文本；服务端校验通过后会从落库 `videoPrompt` 清理这些 source range。
-
-### 子分镜拆法
-
-每个导演稿 item 必须写成：
-
-- `生成一个由以下 N 个分镜组成的视频。`
-- `本片段场景设定在：<CharacterN>(场景名)。`
-- `分镜1 Xs：...`
-- `分镜2 Ys：...`
-- 可选 `分镜3 Zs：...`
-
-固定约束：
-
-- 子分镜默认 **2 个**；只有确实需要“建立 / 推进 / 落点”三拍时才写 **3 个**
-- 每条子分镜的信息顺序固定为：
-  - 环境/空间锚点
-  - 景别/运镜
-  - 角色动作或关系变化
-  - 对白或音效落点
-- 不要混用 `分镜1 4s：...` 和 `0-4秒：...` 两套格式
-- 不要出现连续空行
-- scene header 只出现一次；正文不再重复刷 scene tag
-
-默认节奏模板：
-
-- **Wanx 10s 主路径**：`4s + 6s`
-- **Wanx 10s 三拍**：`3s + 3s + 4s`
-- **Seedance 7-8s**：优先 2 段节拍
-- **Seedance 12-15s**：允许 3 段节拍
-
-### 导演稿重写操作链
-
-标准流程：
-
-1. 用 `storyboard list/get` 读取现有分镜，判断哪些 item 仍是基础稿。
-2. 在 `./.cuelight/<project-key>/storyboards/episode-<number>.json` 中把目标 item 重写成导演稿。
-3. 默认只改 `videoPrompt`，不默认改 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds`。
-4. 若导演稿里新增了对当前镜头有实质影响的关键道具，再同步补 `referencePropIds`。
-5. 用 `director import-storyboards` 或 `storyboard update` 写回。
-6. 回写后必须用 `storyboard get` 抽查 2-3 条，不只看聚合状态。
-
-## Source Draft 启动
-
-从 source 文件进入项目时，优先走完整公开链路：
+当用户只要求“生成一张图”“拿这张图改图”“生成一段视频”“用这张图做首帧视频”这类独立媒体产物时，走开放 CLI，不进入项目工作流。
 
 ```bash
-cuelight-cli source draft create-from-file --title "项目标题" --file ./source.txt --goal scope_planning
-cuelight-cli source draft get <draftId> --json
-cuelight-cli source draft confirm <draftId> --suggestion-index 0
-cuelight-cli project create --title "项目标题" --source-draft-id <draftId> --json
+cuelight-cli image models
+cuelight-cli video models
+
+cuelight-cli image generate --prompt "赛博朋克城市的猫" --model <model> --size 16:9 --output out.png
+cuelight-cli image generate --prompt "改成夜景霓虹短剧海报质感" --model <model> --image-urls ./reference.png --output poster.png
+
+TASK=$(cuelight-cli video generate --prompt "日落下的海岸" --model <model> --duration 5 --aspect-ratio 9:16 --json | jq -r .task_id)
+cuelight-cli task wait "$TASK" --output out.mp4
+
+cuelight-cli video generate --prompt "镜头从人物正面缓慢推近，雨夜霓虹反射" --model <model> --image-urls ./first-frame.png --duration 5 --aspect-ratio 9:16 --output out.mp4
+```
+
+约束：
+
+- 不存在公开手工上传引用资源步骤；不要指导用户手工上传引用资源。
+- `--image-urls` 是引用资源入口，可用逗号混合多个 URL / 本地路径。
+- 不凭 Skill 示例猜模型；先查询模型列表。
+- 若用户明确要把产物绑定到某个项目、角色、场景、道具或分镜，再切回对应项目资源命令。
+
+## 验收
+
+完成写回后必须查询：
+
+```bash
 cuelight-cli project status <projectId> --json
-```
-
-说明：
-
-- `scope` / `suggestions` 以 `source draft get --json` 返回内容为准
-- 不要假设存在单独的 `scope` 命令
-- 若用户说“从小说/原稿继续”，先确认是已有 `projectId` 还是仍停留在 `draftId`
-
-## 标准工作方式
-
-导演相关操作优先使用 `director` 命令组；现有 `bible`、`storyboard`、`ai`、`video` 等底层命令保留为 fallback，不作为主路径。
-
-### 1. 先读状态
-
-优先使用：
-
-```bash
-cuelight-cli director status <projectId> --json
-cuelight-cli director visual-status <projectId> --json
-cuelight-cli director storyboard-status <episodeId> --json
-cuelight-cli director video-status <episodeId> --json
-cuelight-cli episode get <episodeId> --json
-cuelight-cli source draft get <draftId> --json
-```
-
-判断规则：
-
-- 若项目是 `my_script`，先读取原稿全文，再由外部 agent 自行做剧情容量判断
-- 若项目是 `adaptation`，先读取 source 原文、`source draft get --json` 的结构化结果，以及 current season，再由外部 agent 自行判断 proposal、design、分集与正文
-- 缺 `worldView` / `stylePrompt`，先补 Bible
-- 缺 Episode `summary`，先补大纲
-- 缺 Episode `content`，先补剧本
-- 缺 Storyboard，先写文字分镜或再触发生成
-- Storyboard 绑定不完整，不直接出视频
-
-原稿模式额外要求：
-
-- `my_script` 的容量判断默认由外部 agent 自己完成，不依赖服务端推荐值
-- 不要默认写成 `10 集`
-- 不要把固定短剧档位当作 `my_script` 的前提条件
-- 外部 agent 应基于原稿正文，自行给出：
-  - `recommendedEpisodes`
-  - `recommendedDuration`
-  - `capacityRationale`
-  - `episodeSplitStrategy`
-- 形成判断后，再通过 CLI 写回 `project.totalEpisodes`、`season.plannedEpisodes`、必要时 `durationPerEpisode`
-
-### 2. 再写文字资源
-
-优先使用稳定的文件写入命令：
-
-```bash
-cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt
-cuelight-cli director set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt
-cuelight-cli director configure-visuals <projectId> --visual-mode improv --shooting-mode omni_reference --video-ratio 9:16
-cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
-cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
-cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/episodes/episode-<number>-outline.txt
-cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episodes/episode-<number>-script.txt
-cuelight-cli director import-storyboards <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-<number>.json
-cuelight-cli asset set-content <projectId> <assetId> --file ./.cuelight/<projectId>/assets/<assetId>.txt
-```
-
-仍可继续使用已有细粒度更新命令：
-
-```bash
-cuelight-cli bible update <projectId> --world-view "..."
-cuelight-cli episode update <episodeId> --content-file ./.cuelight/<project-key>/episodes/episode-<number>-script.txt
-cuelight-cli director update-storyboard <storyboardId> --video-prompt "..."
-cuelight-cli asset update <projectId> <assetId> --content-file ./.cuelight/<project-key>/assets/<assetId>.txt
-```
-
-执行原则：
-
-- 文字内容默认不要先调用系统内置文本生成工具
-- 先由外部 agent 根据已读取的原稿、`source draft get --json` 的结构化结果、project/season 状态自行产出内容
-- 产出后优先写成本地文件，再用 CLI 写回
-- 同一资源按顺序写入，不并发提交，避免覆盖
-- 若 storyboard prompt 中写了 `本片段场景设定在：...`，在最终落库前必须同时写入 `referenceSceneId`；不要把裸场景名当成唯一绑定来源
-- 若 storyboard 中出现对当前镜头有实质影响的关键道具，在最终落库前必须同时写入 `referencePropIds`
-- 不要假设 `<Character4>` 之类的 scene tag 在不同分镜里含义固定；场景 tag 取决于当前分镜自身的绑定资源顺序
-- 避免把不同项目的临时文件混在同一目录里；切换项目时先切换 `./.cuelight/<project-key>/`
-
-不要把内部文本生成命令写进常规操作链。若确实要做内部调试，应明确使用 `cuelight-cli internal ...`，并向用户说明这不属于公开 CLI 工作流。
-
-### 3. 最后提交生成任务
-
-仅在文字和绑定状态就绪后再进入生成阶段：
-
-```bash
-cuelight-cli character batch-generate-images <projectId>
-cuelight-cli scene batch-generate-images <projectId>
-cuelight-cli prop batch-generate-images <projectId>
-cuelight-cli director generate-style-image <projectId>
-cuelight-cli director batch-generate-videos <episodeId>
-cuelight-cli director generate-video <storyboardId> --episode-id <episodeId> --persist
-cuelight-cli director wait-task <taskId> --timeout 600
-cuelight-cli director export-videos <episodeId>
-```
-
-## 阶段建议
-
-### 编剧准备
-
-目标：
-
-- 项目基础信息齐全
-- proposal / design / Bible 已由外部 agent 写入
-- 至少一集有大纲或剧本正文
-
-推荐命令链：
-
-```bash
-cuelight-cli director status <projectId> --json
-cuelight-cli season status <projectId> <seasonId> --json
-cuelight-cli director visual-status <projectId> --json
-cuelight-cli episode list <projectId> --json
 cuelight-cli episode status <episodeId> --json
+cuelight-cli storyboard status <episodeId> --json
 ```
 
-需要写内容时：
+通过标准：
 
-```bash
-cuelight-cli season set-proposal <projectId> <seasonId> --file ./.cuelight/<projectId>/proposal.txt
-cuelight-cli season set-design <projectId> <seasonId> --file ./.cuelight/<projectId>/design.txt
-cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt
-cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/episodes/episode-<number>-outline.txt
-cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episodes/episode-<number>-script.txt
-```
+- proposal、design、worldView、stylePrompt 非空。
+- `project status` 的 `planning.totalEpisodes` 与 `planning.durationPerEpisode` 非空，并与 design 中的制作规划一致。
+- 第一集 outline 和 script/content 非空。
+- 角色、场景、道具至少各 1 个。
+- 每个角色有非空 `description`、`basePrompt`、`voicePrompt`；每个场景、道具有非空 `description`、`basePrompt`。
+- 资产介绍中不得混写 `basePrompt：`、`voicePrompt：`、`视觉提示词：` 等字段标签。
+- 第一集有分镜，且每条分镜有 `videoPrompt`、`referenceCharacterIds`、`referenceSceneId`。
+- 关键道具分镜带 `referencePropIds`。
+- 用户未明确要求时，没有提交图片、视频或语音任务。
 
-若项目是 `my_script`：
+## 参考
 
-- 先读原稿全文
-- 外部 agent 自行完成容量判断和分集策略
-- 先写回 `totalEpisodes` / `plannedEpisodes` / `durationPerEpisode`
-- 再继续 proposal、design、角色、场景、outline、script
-
-### 视觉设定
-
-目标：
-
-- `stylePrompt` 已就绪
-- 关键角色、场景、道具具备生成参考图的条件
-
-推荐命令链：
-
-```bash
-cuelight-cli director status <projectId> --json
-cuelight-cli director visual-status <projectId> --json
-cuelight-cli style list-presets --json
-cuelight-cli prop list <projectId> --json
-```
-
-需要写内容时：
-
-```bash
-cuelight-cli director set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt
-cuelight-cli director configure-visuals <projectId> --visual-mode improv --shooting-mode omni_reference --video-ratio 9:16
-cuelight-cli style apply <projectId> --preset-id <presetId>
-cuelight-cli director generate-style-image <projectId>
-```
-
-### 分镜设计
-
-目标：
-
-- Episode 已有剧本
-- Storyboard 文本已写入或已生成
-- 角色/场景绑定完整
-
-推荐命令链：
-
-```bash
-cuelight-cli director storyboard-status <episodeId> --json
-```
-
-需要写内容时：
-
-```bash
-cuelight-cli director import-storyboards <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-<number>.json
-cuelight-cli director update-storyboard <storyboardId> --video-prompt "..." --ref-character-ids "..." --ref-scene-id "..." --ref-prop-ids "..."
-```
-
-执行要求：
-
-- 默认先按本 skill 的基础 JSON 模板产出可落库分镜
-- 进入导演工作台精修时，默认把基础稿升级为导演稿
-- my_script 分镜前先识别原稿形态：传统影视/舞台剧本常见 `時/地/人`、场次号、`△` 动作行、`角色：台词`；短视频/教学分镜脚本常见 `【幕/段落标题 (0:00 - 0:45)】`、`画面`、`音效/BGM`、`台词`、互动等待/倒计时、教学目标
-- 传统剧本没有原稿时间码时，不要编造 `源时间码`；动作行、场景说明、`△` 行用于镜头和环境，`角色：（动作）台词` / `角色：台词` 都视为角色对白，但括号动作只写进表演描述，不进入 `说台词`
-- 短视频/教学分镜脚本必须先做时间码 coverage plan；`画面` 进入视觉动作和空间描述，`音效/BGM/互动等待/倒计时` 写进声音设计但不当角色对白，只有 `台词` 区块里的角色对白才写 `<CharacterN>(角色名) 说台词：...`
-- 混合稿同时有场次和时间码时，时间码优先决定 item 覆盖范围，场次/画面/动作行用于场景绑定和镜头内容
-- 若目标模型是 Wanx，单条可投递 storyboard item 默认按最大 `10s` 规划；若目标模型是 Seedance，按 `5-15s` 并根据分镜组情节决定时长
-- Wanx 导演稿优先使用 `4s + 6s` 或 `3s + 3s + 4s`
-- 原稿时间码跨度必须和声明秒数一致；例如 `0:00-0:15` 不能写成 `分镜1 10s`，必须拆成 `0:00-0:10` 的 10s item 和 `0:10-0:15` 的 5s item
-- 原稿对白必须按整句复制；不能为了适配时间码把“仔细看上面的小帽子，中文是有旋律的哦！像过山车一样！Nǐ ...”拆成多个 `说台词`
-- 角色动作括号只用于表演描述，例如 `衣衣（开心拍手）：太棒了` 应写成画面里开心拍手，再写 `<CharacterN>(衣衣) 说台词：太棒了`；不要写成 `说台词：台词：...`
-- `seedance-storyboard` 只在需要增强 `videoPrompt` 的镜头语言时再参考，不是默认前置步骤
-- `videoPrompt` 仍然必须保持中文主叙述，只保留必要英文术语和标签
-- 单个 storyboard item 默认拆成 2-3 个子分镜；空镜、单动作、单情绪特写才保留单分镜
-- 导入后不要只看 `storyboard list` 或 `director storyboard-status`；至少抽查 `storyboard get <storyboardId>`，确认 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds` 真正落库
-
-### 影片制作
-
-目标：
-
-- Storyboard 已齐全
-- 绑定完整
-- 再提交视频生成
-
-推荐命令链：
-
-```bash
-cuelight-cli director video-status <episodeId> --json
-cuelight-cli director batch-generate-videos <episodeId>
-cuelight-cli director wait-task <taskId> --timeout 600
-cuelight-cli director export-videos <episodeId>
-```
-
-## 底层 Fallback 命令
-
-若 `director` 命令组暂时无法覆盖某个细节操作，再回退到现有底层命令。它们只用于补细节和排障，不应替代公开主路径：
-
-```bash
-cuelight-cli bible update <projectId> ...
-cuelight-cli storyboard list <episodeId> --json
-cuelight-cli storyboard update <storyboardId> ...
-cuelight-cli ai submit-video <storyboardId> --episode-id <episodeId>
-cuelight-cli ai batch-submit-videos <episodeId>
-cuelight-cli ai wait <taskId>
-cuelight-cli video export <episodeId>
-```
-
-## 修复路径
-
-常见单点修复命令：
-
-```bash
-# 单角色
-cuelight-cli character upload-image <projectId> <characterId> --file ./.cuelight/<projectId>/characters/<characterId>.png
-cuelight-cli character generate-image <projectId> <characterId>
-cuelight-cli character generate-video <projectId> <characterId>
-
-# 单场景
-cuelight-cli scene upload-image <projectId> <sceneId> --file ./.cuelight/<projectId>/scenes/<sceneId>.png
-cuelight-cli scene generate-image <projectId> <sceneId>
-
-# 单道具
-cuelight-cli prop upload-image <projectId> <propId> --file ./.cuelight/<projectId>/props/<propId>.png
-cuelight-cli prop generate-image <projectId> <propId>
-
-# 单分镜
-cuelight-cli director update-storyboard <storyboardId> --video-prompt "..." --ref-character-ids "..." --ref-scene-id "..." --ref-prop-ids "..."
-cuelight-cli director generate-video <storyboardId> --episode-id <episodeId> --persist
-
-# 任务与版本
-cuelight-cli ai task-status <taskId>
-cuelight-cli ai wait <taskId>
-cuelight-cli resource-version list <projectId> --entity-type character --entity-id <characterId> --asset-kind image
-cuelight-cli resource-version list <projectId> --entity-type scene --entity-id <sceneId> --asset-kind image
-cuelight-cli resource-version list <projectId> --entity-type prop --entity-id <propId> --asset-kind image
-```
-
-## 参考文档
-
-- [project.md](references/project.md)
-- [director.md](references/director.md)
-- [bible.md](references/bible.md)
-- [episode.md](references/episode.md)
-- [storyboard.md](references/storyboard.md)
-- [character.md](references/character.md)
-- [scene.md](references/scene.md)
-- [prop.md](references/prop.md)
-- [style.md](references/style.md)
-- [video-gen.md](references/video-gen.md)
-
-## Agent 行为约束
-
-- 继续项目时，先执行状态命令，不要默认创建新资源
-- 不要把 Skill 当作状态源
-- 不论 `my_script` 还是 `adaptation`，正文默认优先由外部 agent 完成
-- 除非用户明确要求，否则不要把 `episode generate` / `generate-script` 当作默认路径
-- 不要在绑定不完整时直接生成视频
-- 大段文字不要贴在聊天里，优先写文件后通过 CLI 落库
-- 批量覆盖型操作前先告知用户影响范围
-- 若 CLI 报 binary 缺失或不可执行，先执行 `cuelight-cli doctor fix-binary`
-- 若某个命令只能在 `cuelight-cli internal ...` 下找到，说明它是内部调试能力，不要把它当作公开交付路径
+- `references/project.md`
+- `references/bible.md`
+- `references/episode.md`
+- `references/storyboard.md`
+- `references/character.md`
+- `references/scene.md`
+- `references/prop.md`
+- `references/style.md`
+- `references/video-gen.md`

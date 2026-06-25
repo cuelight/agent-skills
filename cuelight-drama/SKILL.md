@@ -15,11 +15,12 @@ description: CueLight 短剧项目本地 Agent 工作流指引。当用户要创
 - **业务请求走统一合同**：公开 CLI 命令只依赖项目、剧集、分镜、任务资源，不让 Agent 决策内部历史结构。
 - **文字类默认由本地 Agent 创作并直写**：本地读取用户给的原稿文件，产出 proposal、design、worldView、stylePrompt、episodes、characters、scenes、props、storyboards，再用 CLI 写回。
 - **`cuelight-drama` 自带基础 storyboard 模板**：按本 Skill 的 JSON 模板就能完成合格落库；其他镜头语言资料只作为 `videoPrompt` 增强参考，不改变 CueLight 字段结构。
-- **Storyboard 的场景绑定必须走结构化字段**：`本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算最终引用；CueLight 以 `referenceSceneId` 为准。
+- **Storyboard 的场景绑定必须走结构化字段**：`本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算最终引用；CueLight 以 `referenceSceneId` / `referenceSceneIds` 为准，新写法在文案中使用 `<SceneN>`。
 - **关键道具同时需要文案层和结构层引用**：文案里可使用 `<PropN>`；若该道具对动作、叙事推进或视觉焦点有实质影响，最终必须同时写入 `referencePropIds`。
 - **提示词统一使用中文主叙述**：`stylePrompt`、`basePrompt`、`videoPrompt` 都以中文自然句为主，仅保留英文专业术语和标签，如 `medium shot`、`close-up`、`rim lighting`、`<CharacterN>`、`<PropN>`。
+- **分镜特殊字符规范**：音乐用中文全角圆括号 `（）`，音效用 `<>`，台词/心声正文用 `{}`，字幕用 `【】`；保留 `说台词：`、`心想：` 前缀，但必须写成 `<CharacterN>(角色名) 说台词：{台词内容}` 或 `<CharacterN>(角色名) 心想：{心声内容}`。
 - **Seedance 分镜使用镜头时序**：Seedance 系列 `videoPrompt` 默认使用 `镜头1 / 镜头2 / ...`，不强制每个镜头写精确秒数；`plannedVideoDurationSeconds` 单独写入 4-15 秒，单条最多 8 个镜头。
-- **完整分集必须覆盖目标时长**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和必须等于 `project.durationPerEpisode`；90 秒单集通常拆成 6-9 条 item。
+- **完整分集覆盖目标时长窗口**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和应落在 `project.durationPerEpisode` 的 90%-110%；无特殊剧情理由时优先使用当前模型 `videoDurationCapability.maxSeconds`，90 秒单集通常拆成 6-9 条 item。
 - **默认不写 BGM**：分镜提示词默认不输出 BGM、配乐、背景音乐或音乐氛围；音乐建议后期添加，只写必要的人声、环境声和动作音效。
 - **默认不提交媒体生成**：除非用户明确要求，不提交图片、视频或语音任务。
 - **纯媒体任务例外**：用户只要求独立图片/视频成品时，可直接使用 `image`、`video`、`task` 命令，不需要项目绑定。
@@ -120,6 +121,7 @@ cuelight-cli project list
 - 主体叙述使用中文自然句，不使用纯英文逗号词串作为默认写法。
 - 专业摄影、镜头、构图、光影术语保留英文，例如 `medium shot`、`close-up`、`over-the-shoulder`、`rim lighting`。
 - 结构化标签保持英文，例如 `<CharacterN>`、`<PropN>`。
+- 特殊字符按信息类型使用：音乐 `（）`，如 `（背景中播放着快节奏的摇滚乐）`；音效 `<>`，如 `<远处传来狗叫声>`；台词 `{}`，如 `<Character1>(田雨) 说台词：{你好，世界}`；小语种需标注语种，如 `<Character2>(角色名) 用日语说道：{こんにちは}`；字幕 `【】`，如 `【第一章：启程】`。
 - 角色/场景/道具的 `basePrompt` 写“基准状态”，不要写剧情时刻、临时情绪或一次性动作。
 - `videoPrompt` 写“当前镜头发生什么”，不要把 JSON 绑定字段混成自然语言说明。
 
@@ -197,9 +199,10 @@ cuelight-cli storyboard get <storyboardId> --json
     "sceneNumber": 1,
     "shotSize": "medium",
     "plannedVideoDurationSeconds": 12,
-    "videoPrompt": "【素材定义】\n<Character1>(赵阿萤) 是当前角色参考，<Character2>(赵府荷花池) 是当前场景参考，<Prop1>(玉佩) 是关键道具参考。\n【分镜时序】\n镜头1：medium shot（中景） static shot（固定拍摄），先压住池边的静默空气，<Character1>(赵阿萤) 站在池边右手缓慢按住 <Prop1>(玉佩)，指腹轻轻收紧、目光停在门口方向，荷花池冷光和门廊阴影把她夹在画面中央，远处传来压低的脚步声。\n镜头2：close-up（特写） slow push-in（缓慢推近），只服务她发现异常的情绪压迫，<Character1>(赵阿萤) 指节逐渐发白、肩膀保持克制不动，池边水面反光落在她侧脸和玉佩边缘，空气里只剩钟表轻响和衣料摩擦声。\n【风格画质】\n真人实拍电影写实风格，自然皮肤纹理，真实服装材质，池边冷暖光线克制。",
+    "videoPrompt": "【素材定义】\n<Character1>(赵阿萤) 是当前角色参考，<Scene1>(赵府荷花池) 是当前场景参考，<Prop1>(玉佩) 是关键道具参考。\n【分镜时序】\n镜头1：medium shot（中景） static shot（固定拍摄），<Scene1>(赵府荷花池) 中先压住池边的静默空气，<Character1>(赵阿萤) 站在池边右手缓慢按住 <Prop1>(玉佩)，指腹轻轻收紧、目光停在门口方向，荷花池冷光和门廊阴影把她夹在画面中央，远处传来压低的脚步声。\n镜头2：close-up（特写） slow push-in（缓慢推近），只服务她发现异常的情绪压迫，<Scene1>(赵府荷花池) 的池边水面反光落在 <Character1>(赵阿萤) 侧脸和玉佩边缘，她指节逐渐发白、肩膀保持克制不动，空气里只剩钟表轻响和衣料摩擦声。\n【风格画质】\n真人实拍电影写实风格，自然皮肤纹理，真实服装材质，池边冷暖光线克制。",
     "referenceCharacterIds": ["char-1"],
     "referenceSceneId": "scene-1",
+    "referenceSceneIds": ["scene-1"],
     "referencePropIds": ["prop-1"],
     "dialogues": [
       { "character": "赵阿萤", "line": "还不到认输的时候。" }
@@ -212,16 +215,18 @@ cuelight-cli storyboard get <storyboardId> --json
 字段规则：
 
 - 必填：`sceneNumber`、`shotSize`、`videoPrompt`、`referenceCharacterIds`、`referenceSceneId`。
+- 多场景：可选 `referenceSceneIds`，第一项为主场景并与 `referenceSceneId` 一致，顺序决定 `<Scene1>/<Scene2>`。
 - 必填：Seedance 项目必须写 `plannedVideoDurationSeconds`，范围 4-15；非 Seedance 建议也写，或让旧 `分镜N Xs` 自动解析。
 - 可选：`referencePropIds`、`dialogues`、`soundEffects`。
 - `dialogues` 固定为 `{ character, line }[]`。
 - `soundEffects` 固定为 `string[]`。
 - 一条 shot 对应一个 object，`sceneNumber` 按导入顺序递增。
-- `videoPrompt` 只承担镜头文案；角色、场景、道具的最终绑定分别以 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds` 为准。
-- 完整分集分镜的 `plannedVideoDurationSeconds` 总和必须等于项目单集目标时长；例如 90 秒单集可拆成 `12 + 12 + 15 + 12 + 15 + 12 + 12`。
+- `videoPrompt` 只承担镜头文案；角色、场景、道具的最终绑定分别以 `referenceCharacterIds`、`referenceSceneId` / `referenceSceneIds`、`referencePropIds` 为准。
+- 完整分集分镜的 `plannedVideoDurationSeconds` 总和应落在项目单集目标时长的 90%-110%；例如 90 秒单集可拆成 `15 + 15 + 15 + 15 + 15 + 15`，也可根据剧情节奏混用 `15 + 12 + 15 + 12 + 15 + 12`。
 - Seedance `videoPrompt` 推荐三段式：`【素材定义】`、`【分镜时序】`、`【风格画质】`。镜头按事件顺序写 `镜头1` 到最多 `镜头8`。
-- 每个 `镜头N：` 必须按固定顺序写四类信息：景别+运镜或镜头切换方式 -> 主体动作与表情 -> 位置或空间变化 -> 同步声音信息。
-- 每个镜头开头必须明确景别和运镜，专业英文术语在前，后接中文括注；推荐句式：`镜头N：<shot size 英文>（中文景别） <camera movement 英文>（中文运镜/切换），<主体动作与表情>，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
+- 每个 `镜头N：` 必须像角色一样显式写出当前空间的 `<SceneN>(场景名)`，并按固定顺序写四类信息：景别+运镜或镜头切换方式 -> 主体动作与表情 -> 位置或空间变化 -> 同步声音信息。
+- 每个镜头开头必须明确景别、运镜和当前空间的 `<SceneN>(场景名)`，专业英文术语在前，后接中文括注；推荐句式：`镜头N：<shot size 英文>（中文景别） <camera movement 英文>（中文运镜/切换），<SceneN>(场景名) 中的主体动作与表情，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
+- 若写对白或心声，保留语义前缀但用 `{}` 包裹发声正文，例如 `<Character1>(田雨) 说台词：{你好，世界}`、`<Character1>(田雨) 心想：{有了这个，我们不仅能活，还能活得极好！}`。
 - 景别必须适配项目 `videoAspectRatio`：`16:9 横屏` 优先 `wide shot`、`medium shot`、`two shot`、`over-the-shoulder`、`medium close-up`，适合空间建立、多人关系、车内/仓库/市场调度；`9:16 竖屏` 优先 `medium shot`、`medium close-up`、`close-up`、紧凑 `two shot`，`wide shot` 只用于必要空间建立，`extreme close-up` 只用于证据物或强情绪落点。
 - 景别先服务画面内容，再考虑跨景别节奏；不要用竖屏近景逻辑硬套横屏空间戏，也不要用横屏远景逻辑稀释竖屏人物情绪。
 - 默认避免相邻镜头只做相邻景别切换；景别层级按 `wide shot -> medium shot -> medium close-up -> close-up -> extreme close-up` 检查，优先跨一个以上景别并承担新的叙事信息。

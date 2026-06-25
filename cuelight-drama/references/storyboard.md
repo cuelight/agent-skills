@@ -4,8 +4,9 @@
 
 - `cuelight-drama` 自带基础 storyboard 模板，默认先按这里的 JSON 契约写。
 - 其他镜头语言资料只增强 `videoPrompt` 的导演感，不改变 CueLight 的字段结构。
-- `videoPrompt` 使用中文自然句，保留必要英文术语和标签，如 `medium shot`、`close-up`、`<CharacterN>`、`<PropN>`。
-- 分镜落库必须结构化绑定；文案里的角色名、场景名、道具名不能替代 `referenceCharacterIds`、`referenceSceneId`、`referencePropIds`。
+- `videoPrompt` 使用中文自然句，保留必要英文术语和标签，如 `medium shot`、`close-up`、`<CharacterN>`、`<SceneN>`、`<PropN>`。
+- 分镜落库必须结构化绑定；文案里的角色名、场景名、道具名不能替代 `referenceCharacterIds`、`referenceSceneId` / `referenceSceneIds`、`referencePropIds`。
+- 特殊字符按信息类型使用：音乐用 `（）`，音效用 `<>`，台词/心声正文用 `{}`，字幕用 `【】`。保留 `说台词：`、`心想：` 前缀，但必须写成 `<CharacterN>(角色名) 说台词：{台词内容}` 或 `<CharacterN>(角色名) 心想：{心声内容}`。
 
 ## 基础 JSON 模板
 
@@ -15,9 +16,10 @@
     "sceneNumber": 1,
     "shotSize": "medium",
     "plannedVideoDurationSeconds": 12,
-    "videoPrompt": "【素材定义】\n<Character1>(赵阿萤) 是当前角色参考，<Character2>(赵府荷花池) 是当前场景参考，<Prop1>(玉佩) 是关键道具参考。\n【分镜时序】\n镜头1：medium shot（中景） static shot（固定拍摄），先压住池边空气，<Character1>(赵阿萤) 站在池边右手缓慢按住 <Prop1>(玉佩)，指腹轻轻收紧、呼吸被压得很轻，荷花池冷光和门廊阴影把她夹在画面中央，远处传来压低的脚步声。\n镜头2：close-up（特写） slow push-in（缓慢推近），只服务她发现异常的情绪压迫，<Character1>(赵阿萤) 目光一点点转向门口、肩膀保持克制不动，池面反光落在她侧脸和玉佩边缘，远处传来木门轻响。\n【风格画质】\n真人实拍电影写实风格，自然皮肤纹理，真实服装材质，池边冷暖光线克制。",
+    "videoPrompt": "【素材定义】\n<Character1>(赵阿萤) 是当前角色参考，<Scene1>(赵府荷花池) 是当前场景参考，<Prop1>(玉佩) 是关键道具参考。\n【分镜时序】\n镜头1：medium shot（中景） static shot（固定拍摄），<Scene1>(赵府荷花池) 中先压住池边空气，<Character1>(赵阿萤) 站在池边右手缓慢按住 <Prop1>(玉佩)，指腹轻轻收紧、呼吸被压得很轻，荷花池冷光和门廊阴影把她夹在画面中央，远处传来压低的脚步声。\n镜头2：close-up（特写） slow push-in（缓慢推近），只服务她发现异常的情绪压迫，<Scene1>(赵府荷花池) 的池面反光落在 <Character1>(赵阿萤) 侧脸和玉佩边缘，她目光一点点转向门口、肩膀保持克制不动，远处传来木门轻响。\n【风格画质】\n真人实拍电影写实风格，自然皮肤纹理，真实服装材质，池边冷暖光线克制。",
     "referenceCharacterIds": ["char-1"],
     "referenceSceneId": "scene-1",
+    "referenceSceneIds": ["scene-1"],
     "referencePropIds": ["prop-1"],
     "dialogues": [
       { "character": "赵阿萤", "line": "还不到认输的时候。" }
@@ -30,6 +32,7 @@
 字段约束：
 
 - 必填：`sceneNumber`、`shotSize`、`videoPrompt`、`referenceCharacterIds`、`referenceSceneId`。
+- 多场景：可选 `referenceSceneIds`，第一项必须与 `referenceSceneId` 一致，顺序决定 `<Scene1>/<Scene2>`。
 - Seedance 项目必填：`plannedVideoDurationSeconds`，范围 4-15。
 - 可选：`referencePropIds`、`dialogues`、`soundEffects`。
 - `dialogues` 固定为 `{ character, line }[]`。
@@ -60,7 +63,7 @@
 
 - **Wanx 系列**：单条可投递 storyboard item 默认按模型最大 **10s** 规划；不是把任意原稿时间段压成 10s。
 - **Seedance 系列**：单条可投递 storyboard item 使用 **4-15s**，写入 `plannedVideoDurationSeconds`；`videoPrompt` 使用 `镜头1 / 镜头2 / 镜头3` 时间轴化描述，不强制每个镜头写精确秒数。
-- **完整分集覆盖**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和必须等于 `project.durationPerEpisode`；90 秒单集通常拆成 6-9 条 item。
+- **完整分集覆盖**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和应落在 `project.durationPerEpisode` 的 90%-110%；无特殊剧情理由时优先使用当前模型 `videoDurationCapability.maxSeconds`，90 秒单集通常拆成 6-9 条 item。
 
 Wanx 的默认节奏：
 
@@ -79,11 +82,11 @@ Seedance 推荐结构：
 
 ```text
 【素材定义】
-<Character1>(角色名) 是当前角色参考，<Character3>(场景名) 是当前场景参考，<Prop1>(道具名) 是关键道具参考。
+<Character1>(角色名) 是当前角色参考，<Scene1>(场景名) 是当前场景参考，<Prop1>(道具名) 是关键道具参考。
 【分镜时序】
-镜头1：medium close-up（中近景） static shot（固定拍摄），主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
-镜头2：close-up（特写） cut-in（切入），主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
-镜头3：two shot（双人镜头） slow push-in（缓慢推近），主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
+镜头1：medium close-up（中近景） static shot（固定拍摄），<Scene1>(场景名) 中主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
+镜头2：close-up（特写） cut-in（切入），<Scene1>(场景名) 中主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
+镜头3：two shot（双人镜头） slow push-in（缓慢推近），<Scene1>(场景名) 中主体动作与表情，位置或空间变化，同步声音/对白/环境声/动作音效。
 【风格画质】
 整体为真人实拍电影写实风格，自然皮肤纹理，真实服装材质，自然光线。
 ```
@@ -98,7 +101,7 @@ Seedance 推荐结构：
 
 传统剧本没有原稿时间码时，不要编造时间码；按场次、动作行、对白密度和首选模型 `maxSeconds` 估算 storyboard item。动作行、场景说明、`△` 行进入镜头和环境；`角色：（动作）台词` / `角色：台词` 都视为角色对白，但括号动作只写进表演描述，不进入 `说台词` 文本。
 
-短视频/教学分镜脚本中，`画面` 进入视觉动作和空间描述；`音效/互动等待/倒计时` 写进 `videoPrompt` 必要声音设计，但不当角色对白；原稿里的音乐提示默认不写入视频提示词，音乐建议后期添加。只有 `台词` 区块里的角色对白才写 `<CharacterN>(角色名) 说台词：...`。例如 `衣衣（开心拍手）：太棒了` 应写成画面里开心拍手，再写 `<CharacterN>(衣衣) 说台词：太棒了`。
+短视频/教学分镜脚本中，`画面` 进入视觉动作和空间描述；`音效/互动等待/倒计时` 写进 `videoPrompt` 必要声音设计，但不当角色对白；原稿里的音乐提示默认不写入视频提示词，音乐建议后期添加。只有 `台词` 区块里的角色对白才写 `<CharacterN>(角色名) 说台词：{...}`。例如 `衣衣（开心拍手）：太棒了` 应写成画面里开心拍手，再写 `<CharacterN>(衣衣) 说台词：{太棒了}`。
 
 ## 原稿时间码拆分规则
 
@@ -128,15 +131,15 @@ Seedance 推荐每个精修稿 item 写成：
 - `plannedVideoDurationSeconds`: 4-15。
 - `【素材定义】`
 - `【分镜时序】`
-- `镜头1：...`
-- `镜头2：...`
-- 可选继续写到 `镜头8：...`
+- `镜头1：... <SceneN>(场景名) ...`
+- `镜头2：... <SceneN>(场景名) ...`
+- 可选继续写到 `镜头8：... <SceneN>(场景名) ...`
 - `【风格画质】`
 
 Wanx / 旧格式精修稿可写成：
 
 - `生成一个由以下 N 个分镜组成的视频。`
-- `本片段场景设定在：<CharacterN>(场景名)。`
+- `本片段场景设定在：<SceneN>(场景名)。`
 - `分镜1 Xs：...`
 - `分镜2 Ys：...`
 - 可选 `分镜3 Zs：...`
@@ -145,7 +148,7 @@ Wanx / 旧格式精修稿可写成：
 
 - Seedance 镜头数按剧情节奏选择 **1-8 个**；15 秒内可以一镜到底，也可以拆到最多 8 个镜头。
 - 每条 `镜头N：` 的信息顺序固定为：景别+运镜或镜头切换方式 -> 主体动作与表情 -> 位置或空间变化 -> 同步声音信息。
-- 每个镜头开头必须明确景别和运镜，专业英文术语在前，后接中文括注；推荐句式：`镜头N：<shot size 英文>（中文景别） <camera movement 英文>（中文运镜/切换），<主体动作与表情>，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
+- 每个镜头开头必须明确景别、运镜和当前空间的 `<SceneN>(场景名)`，专业英文术语在前，后接中文括注；推荐句式：`镜头N：<shot size 英文>（中文景别） <camera movement 英文>（中文运镜/切换），<SceneN>(场景名) 中的主体动作与表情，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
 - 先读取项目 `videoAspectRatio` 再选景别。`16:9 横屏` 可用景别优先级：`wide shot`、`medium shot`、`two shot`、`over-the-shoulder`、`medium close-up`；适合空间建立、多人关系、车内/仓库/市场调度。横屏中 `close-up` 用于证据物、手部动作和关键反应，`extreme close-up` 慎用，只给证据物或强情绪落点。
 - `9:16 竖屏` 可用景别优先级：`medium shot`、`medium close-up`、`close-up`、紧凑 `two shot`；适合人物情绪、对白压力和手部动作。竖屏中 `wide shot` 只用于必要空间建立，避免人物太小；`over-the-shoulder` 要保持主体清楚，避免肩背遮挡过多。
 - 景别先服务画面内容，再考虑跨景别节奏；不要用竖屏近景逻辑硬套横屏空间戏，也不要用横屏远景逻辑稀释竖屏人物情绪。
@@ -156,8 +159,9 @@ Wanx / 旧格式精修稿可写成：
 - 一镜到底也必须补齐四类信息；没有对白时必须写环境声或动作音效，不能只写视觉动作。
 - 不要混用 `分镜1 4s：...` 和 `0-4秒：...`。
 - 不要出现连续空行。
-- scene header 只出现一次；正文不再重复刷 scene tag。
-- `<CharacterN>(角色名) 说台词：...` 必须逐字复制本集正文中同一角色的一整条原文台词；如果只需要表达某句台词的一部分或语义摘要，写成画面/旁白/声音说明，不要使用 `说台词：`。
+- `【素材定义】` 里声明场景，且每条 `镜头N：` 正文都要按实际空间显式写出对应 `<SceneN>(场景名)`；同场景连续时也要写，避免镜头级绑定丢失。
+- `<CharacterN>(角色名) 说台词：{...}` 必须逐字复制本集正文中同一角色的一整条原文台词；如果只需要表达某句台词的一部分或语义摘要，写成画面/旁白/声音说明，不要使用 `说台词：`。
+- 音乐用 `（）`，例如 `（背景中播放着快节奏的摇滚乐）`；音效用 `<>`，例如 `<远处传来狗叫声>`；字幕用 `【】`，例如 `【第一章：启程】`；小语种台词需标注语种，例如 `<Character2>(角色名) 用日语说道：{こんにちは}`。
 - 默认不写 BGM、配乐、背景音乐或音乐氛围；只写与画面同步的脚步声、门响、手机提示音、呼吸声、环境声、角色对白或旁白。
 
 ## 升格示例
@@ -168,7 +172,7 @@ Wanx / 旧格式精修稿可写成：
 
 ```text
 生成一个由以下 1 个分镜组成的视频。
-本片段场景设定在：<Character2>(赵府荷花池)。
+本片段场景设定在：<Scene1>(赵府荷花池)。
 分镜1 10s：固定中景，<Character1>(赵阿萤) 右手按住 <Prop1>(玉佩)，抬眼看向门口，压住呼吸。
 ```
 
@@ -176,7 +180,7 @@ Wanx / 旧格式精修稿可写成：
 
 ```text
 生成一个由以下 2 个分镜组成的视频。
-本片段场景设定在：<Character2>(赵府荷花池)。
+本片段场景设定在：<Scene1>(赵府荷花池)。
 分镜1 4s：medium shot 落在荷花池边的静压氛围里，<Character1>(赵阿萤) 右手按住 <Prop1>(玉佩)，先把呼吸收住，远处只剩压低的脚步声。
 分镜2 6s：镜头缓慢推近到 close-up，<Character1>(赵阿萤) 指节逐渐发白，目光一点点转向门口方向，空气里只剩钟表轻响和衣料摩擦声。
 ```
@@ -187,7 +191,7 @@ Wanx / 旧格式精修稿可写成：
 
 ```text
 生成一个由以下 1 个分镜组成的视频。
-本片段场景设定在：<Character3>(赵府荷花池)。
+本片段场景设定在：<Scene1>(赵府荷花池)。
 分镜1 10s：<Character2>(赵宛瑜) 突然把 <Character1>(赵阿萤) 推进池中，池水炸开，她站在岸边冷眼旁观。
 ```
 
@@ -195,7 +199,7 @@ Wanx / 旧格式精修稿可写成：
 
 ```text
 生成一个由以下 3 个分镜组成的视频。
-本片段场景设定在：<Character3>(赵府荷花池)。
+本片段场景设定在：<Scene1>(赵府荷花池)。
 分镜1 3s：medium shot 先给池边短暂停顿，红绸倒映在水面轻晃，<Character2>(赵宛瑜) 侧身逼近 <Character1>(赵阿萤)。
 分镜2 3s：close-up 骤然切近，<Character2>(赵宛瑜) 猛地抬手把 <Character1>(赵阿萤) 推入池中，落水声当场盖过远处喜乐。
 分镜3 4s：over-the-shoulder 收在岸边，池水仍在翻涌，<Character2>(赵宛瑜) 俯看池面，冷声说道：“考验一个男人，也要看他会不会对谁都心软。”
@@ -206,10 +210,10 @@ Wanx / 旧格式精修稿可写成：
 ```text
 plannedVideoDurationSeconds: 8
 【素材定义】
-<Character1>(林渊) 是当前角色参考，<Character2>(实训教室) 是当前场景参考。
+<Character1>(林渊) 是当前角色参考，<Scene1>(实训教室) 是当前场景参考。
 【分镜时序】
-镜头1：wide shot（远景） static shot（固定拍摄），建立压抑教室空间，<Character1>(林渊) 坐在第二排左侧、双手缓慢压住桌沿、肩背逐渐绷紧，学生席和讲台形成纵深压迫、荧光灯冷白压在他头顶，空气里只有椅脚轻响。
-镜头2：medium close-up（中近景） cut-in（切入），停在 <Character1>(林渊) 侧前方，<Character1>(林渊) 从低头状态自然过渡到抬眼、喉结轻轻滚动，第二排课桌边缘遮住他半截手背，末尾收在一次克制的吸气声上。
+镜头1：wide shot（远景） static shot（固定拍摄），<Scene1>(实训教室) 中建立压抑教室空间，<Character1>(林渊) 坐在第二排左侧、双手缓慢压住桌沿、肩背逐渐绷紧，学生席和讲台形成纵深压迫、荧光灯冷白压在他头顶，空气里只有椅脚轻响。
+镜头2：medium close-up（中近景） cut-in（切入），停在 <Scene1>(实训教室) 内 <Character1>(林渊) 侧前方，<Character1>(林渊) 从低头状态自然过渡到抬眼、喉结轻轻滚动，第二排课桌边缘遮住他半截手背，末尾收在一次克制的吸气声上。
 【风格画质】
 真人实拍电影写实风格，冷白室内光，自然皮肤纹理，真实校服材质。
 ```
@@ -219,11 +223,11 @@ plannedVideoDurationSeconds: 8
 ```text
 plannedVideoDurationSeconds: 14
 【素材定义】
-<Character1>(陈砚) 和 <Character2>(苏晓岚) 是当前角色参考，<Character3>(市井街巷) 是当前场景参考。
+<Character1>(陈砚) 和 <Character2>(苏晓岚) 是当前角色参考，<Scene1>(市井街巷) 是当前场景参考。
 【分镜时序】
-镜头1：wide shot（远景） static shot（固定拍摄），建立潮湿夜巷，<Character1>(陈砚) 站在巷口左侧、右手缓慢松开伞柄、下颌线微微绷住，霓虹反光压在地面并把他和巷口拉开距离，远处车流声被雨声压低。
-镜头2：two shot（双人镜头） lateral tracking shot（横移跟拍），只服务两人距离变化，<Character2>(苏晓岚) 从右侧走近半步后停下、脚尖微微内扣，<Character1>(陈砚) 留在左侧前景形成遮挡关系，两人之间只剩雨滴打在伞面的声音。
-镜头3：close-up（特写） static shot（固定拍摄），收在 <Character1>(陈砚) 眼神的细微变化上，<Character1>(陈砚) 从停顿状态自然过渡到抬眼、手指轻轻攥紧伞柄，巷口霓虹反光滑过他的眼角，远处车流声持续拉长。
+镜头1：wide shot（远景） static shot（固定拍摄），<Scene1>(市井街巷) 中建立潮湿夜巷，<Character1>(陈砚) 站在巷口左侧、右手缓慢松开伞柄、下颌线微微绷住，霓虹反光压在地面并把他和巷口拉开距离，远处车流声被雨声压低。
+镜头2：two shot（双人镜头） lateral tracking shot（横移跟拍），只服务两人距离变化，<Scene1>(市井街巷) 中 <Character2>(苏晓岚) 从右侧走近半步后停下、脚尖微微内扣，<Character1>(陈砚) 留在左侧前景形成遮挡关系，两人之间只剩雨滴打在伞面的声音。
+镜头3：close-up（特写） static shot（固定拍摄），收在 <Scene1>(市井街巷) 内 <Character1>(陈砚) 眼神的细微变化上，<Character1>(陈砚) 从停顿状态自然过渡到抬眼、手指轻轻攥紧伞柄，巷口霓虹反光滑过他的眼角，远处车流声持续拉长。
 【风格画质】
 真人实拍电影写实风格，冷蓝雨夜色调，真实湿地反光，自然皮肤纹理。
 ```
@@ -240,12 +244,12 @@ plannedVideoDurationSeconds: 14
 
 ### 场景
 
-CueLight 的 scene binding 最终以 `referenceSceneId` 为准。
+CueLight 的 scene binding 最终以 `referenceSceneId` / `referenceSceneIds` 为准。
 
 - `本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算有效绑定。
-- 写分镜时必须同时提供 `referenceSceneId`。
-- 当 `referenceSceneId` 已提供时，服务端会把 scene header 自动归一化成本镜本地的 `<CharacterN>(场景名)`。
-- 持久化格式中，场景复用本镜本地、编号接续角色的 `<CharacterN>` 槽位；不要再把场景写成裸中文名。
+- 写分镜时必须同时提供 `referenceSceneId`；涉及快节奏、监控画面、电话两端、闪回或异地反应时，提供 `referenceSceneIds` 绑定多个场景。
+- 当 `referenceSceneIds` 已提供时，第一项是主场景，文案中使用 `<Scene1>(场景名)`，后续场景按顺序使用 `<Scene2>`、`<Scene3>`。
+- 新生成和整条重写的持久化格式中，场景使用独立 `<SceneN>` 槽位；历史 `<CharacterN>(场景名)` 只作为旧项目兼容格式。
 
 ### 道具
 

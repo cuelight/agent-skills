@@ -6,22 +6,26 @@ cuelight-cli style user-styles --json
 cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
 ```
 
-## 写法
+## 通用写法
 
-风格提示词应统一：
+风格提示词应与当前 profile 一致。先确认项目类型，再选择画幅、镜头质感和美术方向：
 
-- 画幅：默认短剧竖屏 9:16，除非用户明确要求其他比例。
-- 影调：冷暖、对比、饱和度、颗粒感。
-- 灯光：soft diffused light、rim lighting、自然侧光、夜景霓虹等。
-- 镜头质感：写实、电影感、手持、稳定推近、浅景深。
-- 服化道方向：时代、阶层、材质、色彩等级。
-- 禁忌项：过度卡通、AI 塑料感、低清、错误时代元素等。
+- 短剧：读取 `references/profiles/short-drama.md`。
+- 番剧：读取 `references/profiles/anime-series.md`。
+- 电影：读取 `references/profiles/film.md`。
+
+stylePrompt 至少覆盖：
+
+- 画幅和构图逻辑。
+- 影调：冷暖、对比、饱和度、颗粒感或动画色彩层次。
+- 灯光：soft diffused light、rim lighting、自然侧光、夜景霓虹、动画摄影处理等。
+- 镜头质感：写实、动画演出、电影摄影、手持、稳定推近、浅景深等。
+- 服化道或美术方向：时代、阶层、材质、色彩等级、作画线条或场景设计。
+- 禁忌项：过度卡通、AI 塑料感、低清、错误时代元素、与 profile 不一致的画幅或镜头语言。
 
 ## 示例
 
-```text
-仿真人短剧质感，竖屏 9:16，人物近景优先，整体低饱和暖灰调。室内以 soft diffused light 为主，人物边缘保留轻微 rim lighting，镜头稳定推近，浅景深突出面部表演。服化道强调阶层差异，避免卡通化、过度磨皮、低清纹理和错误时代元素。
-```
+短剧、番剧、电影的示例分别见对应 profile。不要把某一 profile 的示例当作全局默认。
 
 ## 注意
 

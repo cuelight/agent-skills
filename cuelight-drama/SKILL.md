@@ -17,8 +17,9 @@ description: CueLight 短剧项目本地 Agent 工作流指引。当用户要创
 - **`cuelight-drama` 自带基础 storyboard 模板**：按本 Skill 的 JSON 模板就能完成合格落库；其他镜头语言资料只作为 `videoPrompt` 增强参考，不改变 CueLight 字段结构。
 - **Storyboard 的场景绑定必须走结构化字段**：`本片段场景设定在：实训教室。` 这类裸场景名只能算文案，不算最终引用；CueLight 以 `referenceSceneId` / `referenceSceneIds` 为准，新写法在文案中使用 `<SceneN>`。
 - **关键道具同时需要文案层和结构层引用**：文案里可使用 `<PropN>`；若该道具对动作、叙事推进或视觉焦点有实质影响，最终必须同时写入 `referencePropIds`。
-- **提示词统一使用中文主叙述**：`stylePrompt`、`basePrompt`、`videoPrompt` 都以中文自然句为主，仅保留英文专业术语和标签，如 `medium shot`、`close-up`、`rim lighting`、`<CharacterN>`、`<PropN>`。
+- **提示词统一使用中文主叙述**：`stylePrompt`、`basePrompt`、`videoPrompt` 都以中文自然句为主，仅保留英文专业术语和标签，如 `medium shot`、`close-up`、`rim lighting`、`<CharacterN>`、`<SceneN>`、`<PropN>`。
 - **分镜特殊字符规范**：音乐用中文全角圆括号 `（）`，音效用 `<>`，台词/心声正文用 `{}`，字幕用 `【】`；保留 `说台词：`、`心想：` 前缀，但必须写成 `<CharacterN>(角色名) 说台词：{台词内容}` 或 `<CharacterN>(角色名) 心想：{心声内容}`。
+- **角色关系事实一致性是硬约束**：每个 `<CharacterN>(姓名)` 的动作、台词、心理状态必须符合角色描述、本集正文和 beats；不得把其他角色行为转移到当前绑定角色。父亲、母亲、保护者不能承接丈夫、渣男、公公、小三、夺房、推开女主等剧情，除非本集正文明确写了该角色这样做。
 - **Seedance 分镜使用镜头时序**：Seedance 系列 `videoPrompt` 默认使用 `镜头1 / 镜头2 / ...`，不强制每个镜头写精确秒数；`plannedVideoDurationSeconds` 单独写入 4-15 秒，单条最多 8 个镜头。
 - **完整分集覆盖目标时长窗口**：生成某一集完整分镜时，所有 storyboard item 的 `plannedVideoDurationSeconds` 总和应落在 `project.durationPerEpisode` 的 90%-110%；无特殊剧情理由时优先使用当前模型 `videoDurationCapability.maxSeconds`，90 秒单集通常拆成 6-9 条 item。
 - **默认不写 BGM**：分镜提示词默认不输出 BGM、配乐、背景音乐或音乐氛围；音乐建议后期添加，只写必要的人声、环境声和动作音效。
@@ -227,6 +228,7 @@ cuelight-cli storyboard get <storyboardId> --json
 - 每个 `镜头N：` 必须像角色一样显式写出当前空间的 `<SceneN>(场景名)`，并按固定顺序写四类信息：景别+运镜或镜头切换方式 -> 主体动作与表情 -> 位置或空间变化 -> 同步声音信息。
 - 每个镜头开头必须明确景别、运镜和当前空间的 `<SceneN>(场景名)`，专业英文术语在前，后接中文括注；推荐句式：`镜头N：<shot size 英文>（中文景别） <camera movement 英文>（中文运镜/切换），<SceneN>(场景名) 中的主体动作与表情，<位置或空间变化>，<同步声音/对白/环境声/动作音效>。`
 - 若写对白或心声，保留语义前缀但用 `{}` 包裹发声正文，例如 `<Character1>(田雨) 说台词：{你好，世界}`、`<Character1>(田雨) 心想：{有了这个，我们不仅能活，还能活得极好！}`。
+- 角色关系事实一致性是硬约束：每个 `<CharacterN>(姓名)` 的动作、台词、心理状态必须符合角色描述、本集正文和 beats；不得把其他角色行为转移到当前绑定角色。保存前逐个核对 `角色标签 -> 角色身份 -> 本镜头动作/台词 -> 本集事件依据`；发现父亲/母亲/保护者承接丈夫、渣男、公公、小三、夺房、推开女主等剧情时，应修正为正确角色，复核问题记为 `character_fact_mismatch`。
 - 景别必须适配项目 `videoAspectRatio`：`16:9 横屏` 优先 `wide shot`、`medium shot`、`two shot`、`over-the-shoulder`、`medium close-up`，适合空间建立、多人关系、车内/仓库/市场调度；`9:16 竖屏` 优先 `medium shot`、`medium close-up`、`close-up`、紧凑 `two shot`，`wide shot` 只用于必要空间建立，`extreme close-up` 只用于证据物或强情绪落点。
 - 景别先服务画面内容，再考虑跨景别节奏；不要用竖屏近景逻辑硬套横屏空间戏，也不要用横屏远景逻辑稀释竖屏人物情绪。
 - 默认避免相邻镜头只做相邻景别切换；景别层级按 `wide shot -> medium shot -> medium close-up -> close-up -> extreme close-up` 检查，优先跨一个以上景别并承担新的叙事信息。

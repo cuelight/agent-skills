@@ -108,6 +108,8 @@ cuelight-cli project list
 - 推荐文件布局：
   - `./.cuelight/<projectId>/proposal.txt`
   - `./.cuelight/<projectId>/design.txt`
+  - `./.cuelight/<projectId>/film-three-act-outline.md`（电影项目本地三幕式规划；当前不通过 CLI 写回）
+  - `./.cuelight/<projectId>/film-data/`（电影项目本地影子结构；`.yaml` 原生 YAML 文件，当前不通过 CLI 写回）
   - `./.cuelight/<projectId>/world.txt`
   - `./.cuelight/<projectId>/style-prompt.txt`
   - `./.cuelight/<projectId>/characters/<name>-desc.txt`
@@ -238,6 +240,7 @@ cuelight-cli storyboard status <episodeId> --json
 - `references/profiles/short-drama.md`
 - `references/profiles/anime-series.md`
 - `references/profiles/film.md`
+- `references/profiles/film-data-local.md`
 - `references/project.md`
 - `references/bible.md`
 - `references/episode.md`

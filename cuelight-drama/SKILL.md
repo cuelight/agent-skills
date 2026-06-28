@@ -133,6 +133,7 @@ cuelight-cli project list
 - 特殊字符按信息类型使用：音乐 `（）`，音效 `<>`，台词/心声正文 `{}`，字幕 `【】`。
 - 保留 `说台词：`、`心想：` 前缀，但必须写成 `<CharacterN>(角色名) 说台词：{台词内容}` 或 `<CharacterN>(角色名) 心想：{心声内容}`。
 - 角色/场景/道具的 `basePrompt` 写“基准状态”；剧情时刻、临时情绪和一次性动作写入具体分镜。
+- 角色 `basePrompt` 优先按 CueLight 角色视觉顺序写稳定外观：性别、年龄段、身份、肤色、脸型/五官、体态、发型、服装材质、整体气质和基础镜头建议；详细规则见 `references/character.md`。
 - `videoPrompt` 写“当前镜头发生什么”；JSON 绑定字段保持结构化字段。
 
 ## 结构化绑定
@@ -238,6 +239,7 @@ cuelight-cli storyboard status <episodeId> --json
 - `project status` 的 `planning.totalEpisodes` 与 `planning.durationPerEpisode` 非空，并与 design 中的制作规划一致。
 - 当前阶段要求的 outline、script/content、角色、场景、道具和分镜已写回。
 - 每个角色有非空 `description`、`basePrompt`、`voicePrompt`；每个场景、道具有非空 `description`、`basePrompt`。
+- 角色 `basePrompt` 不缺失性别、年龄段、脸型/五官、体态、发型、服装材质、整体气质和基础镜头建议，且不把剧情动作、临时情绪或人物关系写成外观提示词。
 - 资产介绍中不得混写 `basePrompt：`、`voicePrompt：`、`视觉提示词：` 等字段标签。
 - 分镜有 `videoPrompt`、`referenceCharacterIds`、`referenceSceneId`；关键道具分镜带 `referencePropIds`。
 - 用户未明确要求时，没有提交图片、视频或语音任务。

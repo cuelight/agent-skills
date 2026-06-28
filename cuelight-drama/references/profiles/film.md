@@ -459,7 +459,7 @@ Screenplay / ScriptBlock
 - storyboard item 从最新 screenplay 中提炼；每条 `scriptExcerpt` 必须能追溯到正文里的场景标题、动作、对白、道具、屏幕信息、声音触发或情绪停顿。
 - Beat 可以覆盖超过单条分镜组上限的戏剧动作，但写入本地 `segment.yaml` 或 CueLight storyboard 前必须拆成 4-15 秒的连续 VideoSegment。
 - 如果正文从 treatment 改成 screenplay，已有 storyboard 要按新正文重新校准 `videoPrompt` 与 `scriptExcerpt`，不能只做表面润色。
-- 角色、场景、道具先按稳定资产写入 CueLight；剧本中的临时情绪和一次性动作进入 episode/script 或 storyboard，不写进资产 `basePrompt`。
+- 角色、场景、道具先按稳定资产写入 CueLight；电影角色资产同样遵守通用 `character.basePrompt` 外观顺序，剧本中的临时情绪、场面动作和剧情状态进入 screenplay / episode / storyboard，不写进资产 `basePrompt`。
 - AIGC 友好的电影剧本应让系统能抽取角色、场景、道具、动作、情绪、声音和对白；抽象心理必须转成可见可听的行为。
 - 导出正式 screenplay DOCX 前，必须先完成 Literary Rewrite Pass、screenplay quality strict 和 Agent 文学审查；DOCX 正文顺序以根级 `film-data/script/pages.yaml` 为准。
 

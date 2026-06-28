@@ -22,7 +22,7 @@ description: CueLight 剧情项目本地 Agent 工作流指引，覆盖短剧、
 
 1. 读取用户话语、项目 `genre`、`design`、`durationPerEpisode`、`videoAspectRatio` 和原稿形态。
 2. 能明确判断时，选择一个 profile 并读取对应文件。
-3. 类型不明确时，先询问用户确认类型，只给出这三个选项：`短剧`、`番剧`、`电影`。确认前不要套用短剧节奏、90 秒容量、竖屏近景或强钩子规则。
+3. 类型不明确时，先询问用户确认类型，只给出这三个选项：`短剧`、`番剧`、`电影`。确认后再读取对应 profile 并采用对应节奏、容量和画幅规则。
 
 Profile 路由：
 
@@ -109,7 +109,7 @@ cuelight-cli project list
   - `./.cuelight/<projectId>/proposal.txt`
   - `./.cuelight/<projectId>/design.txt`
   - `./.cuelight/<projectId>/film-three-act-outline.md`（电影项目本地三幕式规划；当前不通过 CLI 写回）
-  - `./.cuelight/<projectId>/film-data/`（电影项目本地影子结构；`.yaml` 原生 YAML 文件，当前不通过 CLI 写回）
+  - `./.cuelight/<projectId>/film-data/`（电影项目本地影子结构；`.yaml` 原生 YAML 文件，当前不通过 CLI 写回；维护前必须读取 `references/profiles/film-data-local.md` 的多节点、索引和时长汇总规则）
   - `./.cuelight/<projectId>/world.txt`
   - `./.cuelight/<projectId>/style-prompt.txt`
   - `./.cuelight/<projectId>/characters/<name>-desc.txt`
@@ -132,8 +132,8 @@ cuelight-cli project list
 - 结构化标签保持英文，例如 `<CharacterN>`、`<SceneN>`、`<PropN>`。
 - 特殊字符按信息类型使用：音乐 `（）`，音效 `<>`，台词/心声正文 `{}`，字幕 `【】`。
 - 保留 `说台词：`、`心想：` 前缀，但必须写成 `<CharacterN>(角色名) 说台词：{台词内容}` 或 `<CharacterN>(角色名) 心想：{心声内容}`。
-- 角色/场景/道具的 `basePrompt` 写“基准状态”，不要写剧情时刻、临时情绪或一次性动作。
-- `videoPrompt` 写“当前镜头发生什么”，不要把 JSON 绑定字段混成自然语言说明。
+- 角色/场景/道具的 `basePrompt` 写“基准状态”；剧情时刻、临时情绪和一次性动作写入具体分镜。
+- `videoPrompt` 写“当前镜头发生什么”；JSON 绑定字段保持结构化字段。
 
 ## 结构化绑定
 
@@ -191,6 +191,13 @@ cuelight-cli storyboard get <storyboardId> --json
 - design 说明剧集结构、人物弧光、世界规则、主要关系、节奏策略和可生产约束。
 - worldView 写稳定设定，不写临时剧情复述。
 - episode、style、storyboard 的具体写法先读通用 reference，再读当前 profile。
+- 电影项目若维护本地 `film-data/`，先读 `references/profiles/film-data-local.md` 的正向生成流程和 capacity few-shot，再按“三幕/八序列规划 -> Act/Sequence/Scene/Beat 索引 -> screenplay blocks/pages -> Segment/Shot/Prompt/Continuity”生成；交付前用 `cuelight-cli internal film-data duration --strict` 和 screenplay quality strict 获取信号，并由 Agent 主动审查产物、写出证据和放行结论。
+- 电影项目若从创意说明、历史分析、人物小传、treatment、舞台剧或小说片段生成 `film-data/`，先读 `references/profiles/film.md` 的 Creative Source Adaptation Pass；把分析性内容放入 bible/outline/metadata，把 `script/blocks.yaml` 写成真正 screenplay。
+- 电影项目每完成阶段性 screenplay draft 后，必须执行 `references/profiles/film.md` 的 Literary Rewrite Loop Engineering；默认保持本地 metadata、block id 和 production 绑定稳定，并循环到 screenplay quality strict 与 Agent Literary Review Gate 都通过。
+- 电影正式 screenplay 在 Literary Rewrite 通过后、交付或导出前，执行 `references/profiles/film.md` 的 Commercialization Punch-up Pass（商业化强化环节）与 Commercial Review Gate（商业化审查门）；工具 `strict ok` 不能单独放行。
+- 电影 workflow 中所有 gate 都是 Agent-owned：duration、pagination、playable capacity、rewrite、DOCX 和 production-ready 不能只靠工具 `strict ok` 放行，必须有 Agent 抽查对象、证据、`pass` / `fail` 和下一步许可。
+- 电影项目若要求导出 screenplay DOCX，使用 `scripts/export_film_screenplay_docx.py`，以根级 `film-data/script/pages.yaml` 为分页权威；导出前必须完成 Rewrite、screenplay quality strict 和 Agent 审查。
+- 电影项目若验收目标限定为“第一幕完整拆解”，按目标片长和剧情容量预算 `act_001`，生成多 Sequence、多 Scene、多 Beat、4-15 秒 Segment 和多 Shot；第二、三幕可先保持 outline-only。
 - 角色必须分离保存 `description`、`basePrompt`、`voicePrompt`；场景、道具必须分离保存 `description` 和 `basePrompt`。
 
 ## 纯媒体生成
@@ -210,7 +217,7 @@ cuelight-cli task wait "$TASK" --output out.mp4
 
 约束：
 
-- 不存在公开手工上传引用资源步骤；不要指导用户手工上传引用资源。
+- 引用资源入口使用 CLI 参数和平台资源绑定；公开流程不包含手工上传引用资源步骤。
 - `--image-urls` 是引用资源入口，可用逗号混合多个 URL / 本地路径。
 - 不凭 Skill 示例猜模型；先查询模型列表。
 - 若用户明确要把产物绑定到某个项目、角色、场景、道具或分镜，再切回对应项目资源命令。

@@ -7,6 +7,9 @@ cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episo
 cuelight-cli episode status <episodeId> --json
 ```
 
+> 页面导出：在「剧本生产看板」(`ScriptTab`) 头部点「导出 docx 剧本」按钮，触发 `GET /api/projects/:id/export-screenplay`，服务端将整季 episodes 按集号合并生成单个 docx。正文保留短剧原文格式（不重排为电影剧本式）；目录为集级 + 场景级可点击跳转条目（手动书签 + 内部超链接，无需「更新域」）；正文页页脚居中显示 `CueLight 短剧Agent`（封面页除外）。无对应 CLI 命令。
+
+
 ## 通用原则
 
 分集大纲用于指导剧本文本和分镜，不是营销简介。剧本文本必须可拍摄，能提取场景、角色、道具、对白、动作和声音触发。

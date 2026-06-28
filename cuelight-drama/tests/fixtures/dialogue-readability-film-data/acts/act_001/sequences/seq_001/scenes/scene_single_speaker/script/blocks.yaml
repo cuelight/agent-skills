@@ -1,0 +1,21 @@
+- block_id: blk_single_001
+  scene_id: scene_single_speaker
+  order_index: 1
+  block_type: scene_heading
+  text: 外景. 货运站月台 - 清晨
+- block_id: blk_single_002
+  scene_id: scene_single_speaker
+  order_index: 2
+  block_type: action
+  text: 第一班货车还没有进站，月台上的白线被雾水泡得发亮。广播柱旁堆着三只封好的木箱，箱面没有收件人，只有同一个红色编号。周明站在编号前，手里攥着昨晚撕下来的封条。远处传来轨道预热的低响，几个搬运工隔着雾看他，没有一个人靠近。风把他脚边的纸屑卷起，又贴回鞋面。
+- block_id: blk_single_003
+  scene_id: scene_single_speaker
+  order_index: 3
+  block_type: dialogue
+  character_id: char_zhou
+  text: 他们说这三箱只是旧账，可旧账不会自己挑清晨进站。
+- block_id: blk_single_004
+  scene_id: scene_single_speaker
+  order_index: 4
+  block_type: action
+  text: 他把封条按回箱盖，胶边已经失去黏性，只能翘在那里。货车灯从雾里亮起，红色编号在光里一跳一跳。搬运工终于有人低头看表，月台广播却迟迟没有报车次，像整座站都在等周明先承认这批货属于谁。站务室的玻璃门开了一道缝，一只戴白手套的手把登记簿推出来，又很快缩回去。周明没有翻开登记簿，只看见封面上压着昨晚丢失的半枚铜扣。货车鸣笛前，雾里有人咳了一声，所有搬运工同时避开他的目光。

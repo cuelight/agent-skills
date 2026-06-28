@@ -156,6 +156,26 @@ MIN_NONREPEATED_SCREENPLAY_CHARS_PER_PAGE = 320
 TARGET_NONREPEATED_SCREENPLAY_CHARS_PER_PAGE = (350, 420)
 REPEATED_FRAGMENT_MIN_CHARS = 22
 PAGE_CAPACITY_BLOCK_TYPES = {"action", "dialogue", "parenthetical", "sound"}
+SCRIPT_BODY_BLOCK_TYPES = {"action", "dialogue", "parenthetical", "shot", "insert", "sound", "super", "transition"}
+UNLOCALIZED_SCREENPLAY_TERMS = [
+    "SOUND",
+    "INSERT",
+    "CLOSE ON",
+    "ANGLE ON",
+    "MOVING WITH",
+]
+DIALOGUE_INTERLEAVE_BLOCK_TYPES = {"action", "parenthetical", "sound", "insert", "shot"}
+DIALOGUE_EXCEPTION_KEYWORDS = [
+    "独白",
+    "广播",
+    "系统语音",
+    "审讯压迫",
+    "仪式宣告",
+    "无对手戏",
+    "monologue",
+    "broadcast",
+    "system voice",
+]
 
 
 def rel_path(path: Path, root: Path) -> str:
@@ -241,6 +261,46 @@ def looks_like_visible_action(text):
 
 def normalize_text(text):
     return re.sub(r"\s+", "", str(text or ""))
+
+
+def contains_unlocalized_screenplay_term(text):
+    upper = str(text or "").upper()
+    return next((term for term in UNLOCALIZED_SCREENPLAY_TERMS if term in upper), None)
+
+
+def page_status_is_formal(page):
+    coverage = str(page.get("coverage_level", "") or "").lower()
+    status = str(page.get("status", "") or "").lower()
+    informal_markers = ("sample", "partial", "draft", "timing_estimate")
+    if any(marker in coverage for marker in informal_markers):
+        return False
+    if any(marker in status for marker in ("sample", "partial", "draft")):
+        return False
+    return coverage in {"full_page", "locked", "production_ready"} or status in {"locked", "production_ready", "final"}
+
+
+def page_issue_level(page, strict):
+    return "error" if strict and page_status_is_formal(page) else "warning"
+
+
+def page_has_dialogue_exception(page):
+    fields = [
+        page.get("dialogue_exception"),
+        page.get("dialogue_readability_exception"),
+        page.get("dialogue_gate_exception"),
+        page.get("note"),
+        page.get("notes"),
+    ]
+    text = " ".join(str(item) for item in fields if item)
+    return any(keyword.lower() in text.lower() for keyword in DIALOGUE_EXCEPTION_KEYWORDS)
+
+
+def block_speaker(block):
+    for key in ("character_id", "speaker_id", "speaker", "character_name", "speaker_name"):
+        value = block.get(key)
+        if value:
+            return str(value)
+    return "unknown"
 
 
 def normalize_sentence_skeleton(text):
@@ -337,6 +397,20 @@ def inspect_block(block, path, root):
                 text,
             )
         )
+
+    if block_type in SCRIPT_BODY_BLOCK_TYPES:
+        term = contains_unlocalized_screenplay_term(text)
+        if term:
+            issues.append(
+                issue(
+                    "error",
+                    "unlocalized_screenplay_term",
+                    f"Chinese screenplay body contains unlocalized screenplay function term '{term}'. Use localized terms such as 声音：、插入：、特写：、视角： or 跟拍：.",
+                    rel,
+                    block,
+                    text,
+                )
+            )
 
     if block_type in {"action", "dialogue"} and has_pattern(text, TEMPLATED_SCREENPLAY_PATTERNS):
         issues.append(
@@ -742,7 +816,11 @@ def collect_page_blocks(root: Path, issues, act_id=None):
         page_blocks.append(
             {
                 "pageNumber": page.get("page_number"),
+                "scriptPageId": page.get("script_page_id"),
                 "declaredSec": page.get("estimated_duration_sec"),
+                "coverageLevel": page.get("coverage_level"),
+                "status": page.get("status"),
+                "dialogueException": page_has_dialogue_exception(page),
                 "path": rel_path(pages_path, root),
                 "blocks": selected_blocks,
             }
@@ -847,6 +925,132 @@ def compute_page_capacity(root: Path, issues, strict=False, act_id=None):
     }
 
 
+def compute_dialogue_readability(root: Path, issues, strict=False, act_id=None):
+    page_blocks = collect_page_blocks(root, issues, act_id=act_id)
+    pages = []
+    totals = {
+        "pagesWithDialogue": 0,
+        "pagesUnderDialogueMin": 0,
+        "singleSpeakerPages": 0,
+        "pagesUnderTurnMin": 0,
+        "pagesMissingActionInterleave": 0,
+    }
+
+    for page in page_blocks:
+        dialogue_blocks = []
+        speakers = []
+        issue_types = []
+        dialogue_positions = []
+        interleaved = True
+
+        for index, block in enumerate(page["blocks"]):
+            if not isinstance(block, dict):
+                continue
+            block_type = str(block.get("block_type", "")).strip()
+            if block_type == "dialogue":
+                dialogue_blocks.append(block)
+                speakers.append(block_speaker(block))
+                dialogue_positions.append(index)
+
+        if len(dialogue_positions) >= 2:
+            for left, right in zip(dialogue_positions, dialogue_positions[1:]):
+                between = page["blocks"][left + 1 : right]
+                has_interleave = any(
+                    isinstance(block, dict) and str(block.get("block_type", "")).strip() in DIALOGUE_INTERLEAVE_BLOCK_TYPES
+                    for block in between
+                )
+                if not has_interleave:
+                    interleaved = False
+                    break
+
+        compressed_speaker_turns = []
+        for speaker in speakers:
+            if not compressed_speaker_turns or compressed_speaker_turns[-1] != speaker:
+                compressed_speaker_turns.append(speaker)
+
+        dialogue_count = len(dialogue_blocks)
+        speaker_count = len({speaker for speaker in speakers if speaker})
+        speaker_turns = len(compressed_speaker_turns)
+        has_exception = page["dialogueException"]
+        level = page_issue_level(page, strict)
+
+        if dialogue_count > 0:
+            totals["pagesWithDialogue"] += 1
+
+        if dialogue_count == 1 and not has_exception:
+            totals["pagesUnderDialogueMin"] += 1
+            issue_types.append("page_dialogue_underfit")
+            issues.append(
+                issue(
+                    level,
+                    "page_dialogue_underfit",
+                    f"ScriptPage {page['pageNumber']} has only 1 dialogue block; interactive pages should default to at least 2 dialogue blocks or record an explicit exception.",
+                    page["path"],
+                    dialogue_blocks[0],
+                    dialogue_blocks[0].get("text", ""),
+                )
+            )
+
+        if dialogue_count > 0 and speaker_count == 1 and not has_exception:
+            totals["singleSpeakerPages"] += 1
+            issue_types.append("single_speaker_dialogue_page")
+            issues.append(
+                issue(
+                    level,
+                    "single_speaker_dialogue_page",
+                    f"ScriptPage {page['pageNumber']} has dialogue from a single speaker; record an explicit monologue/broadcast/system/interrogation/ritual/no-opponent exception or rewrite as interaction.",
+                    page["path"],
+                    dialogue_blocks[0],
+                    dialogue_blocks[0].get("text", ""),
+                )
+            )
+
+        if dialogue_count >= 2 and speaker_turns < 2 and not has_exception:
+            totals["pagesUnderTurnMin"] += 1
+            issue_types.append("dialogue_turn_underfit")
+            issues.append(
+                issue(
+                    level,
+                    "dialogue_turn_underfit",
+                    f"ScriptPage {page['pageNumber']} has {speaker_turns} speaker turn(s); interactive dialogue pages should contain at least 2 speaker turns or record an explicit exception.",
+                    page["path"],
+                )
+            )
+
+        if dialogue_count >= 2 and not interleaved:
+            totals["pagesMissingActionInterleave"] += 1
+            issue_types.append("dialogue_action_interleave_missing")
+            issues.append(
+                issue(
+                    level,
+                    "dialogue_action_interleave_missing",
+                    f"ScriptPage {page['pageNumber']} has adjacent dialogue blocks without action, reaction, silence, prop, or sound change between them.",
+                    page["path"],
+                )
+            )
+
+        pages.append(
+            {
+                "pageNumber": page["pageNumber"],
+                "scriptPageId": page["scriptPageId"],
+                "declaredSec": page["declaredSec"],
+                "coverageLevel": page["coverageLevel"],
+                "status": page["status"],
+                "dialogueBlocks": dialogue_count,
+                "speakerCount": speaker_count,
+                "speakerTurns": speaker_turns,
+                "hasActionBetweenDialogues": interleaved,
+                "hasSingleSpeakerException": has_exception,
+                "issueTypes": issue_types,
+            }
+        )
+
+    return {
+        "pages": pages,
+        "totals": totals,
+    }
+
+
 def estimate_script_pages_duration_sec(root: Path, act_id=None):
     pages_path = root / "script" / "pages.yaml"
     if yaml is None or not pages_path.exists():
@@ -910,6 +1114,20 @@ def compute_literary_score(totals, issues):
         penalty = min(30, issue_type_counts["page_playable_capacity_underfit"] * 4)
         score -= penalty
         deductions.append({"reason": "page_playable_capacity_underfit", "count": issue_type_counts["page_playable_capacity_underfit"], "points": penalty})
+    dialogue_readability_count = (
+        issue_type_counts["page_dialogue_underfit"]
+        + issue_type_counts["single_speaker_dialogue_page"]
+        + issue_type_counts["dialogue_turn_underfit"]
+        + issue_type_counts["dialogue_action_interleave_missing"]
+    )
+    if dialogue_readability_count:
+        penalty = min(30, dialogue_readability_count * 4)
+        score -= penalty
+        deductions.append({"reason": "dialogue_readability_underfit", "count": dialogue_readability_count, "points": penalty})
+    if issue_type_counts["unlocalized_screenplay_term"]:
+        penalty = min(20, issue_type_counts["unlocalized_screenplay_term"] * 5)
+        score -= penalty
+        deductions.append({"reason": "unlocalized_screenplay_terms", "count": issue_type_counts["unlocalized_screenplay_term"], "points": penalty})
     if issue_type_counts["templated_screenplay_pattern"] or issue_type_counts["repeated_sentence_skeleton"] or issue_type_counts["synthetic_rewrite_template"]:
         template_count = (
             issue_type_counts["templated_screenplay_pattern"]
@@ -944,6 +1162,11 @@ def build_report(film_data_dir: Path, strict=False, act_id=None):
         "estimatedNonRepeatedPlayableMinutes": 0,
         "minPageNonRepeatedPlayableChars": 0,
         "pagesUnderPlayableMin": 0,
+        "pagesWithDialogue": 0,
+        "pagesUnderDialogueMin": 0,
+        "singleSpeakerDialoguePages": 0,
+        "pagesUnderDialogueTurnMin": 0,
+        "pagesMissingDialogueInterleave": 0,
         "targetEstimatedMinutes": 0,
         "segmentFiles": 0,
         "actions": 0,
@@ -983,6 +1206,12 @@ def build_report(film_data_dir: Path, strict=False, act_id=None):
         totals["estimatedNonRepeatedPlayableMinutes"] = page_capacity["estimatedNonRepeatedPlayableMinutes"]
         totals["minPageNonRepeatedPlayableChars"] = page_capacity["minPageNonRepeatedPlayableChars"]
         totals["pagesUnderPlayableMin"] = page_capacity["underMinPages"]
+        dialogue_readability = compute_dialogue_readability(root, issues, strict=strict, act_id=act_id)
+        totals["pagesWithDialogue"] = dialogue_readability["totals"]["pagesWithDialogue"]
+        totals["pagesUnderDialogueMin"] = dialogue_readability["totals"]["pagesUnderDialogueMin"]
+        totals["singleSpeakerDialoguePages"] = dialogue_readability["totals"]["singleSpeakerPages"]
+        totals["pagesUnderDialogueTurnMin"] = dialogue_readability["totals"]["pagesUnderTurnMin"]
+        totals["pagesMissingDialogueInterleave"] = dialogue_readability["totals"]["pagesMissingActionInterleave"]
         target_estimated_sec = estimate_script_pages_duration_sec(root, act_id=act_id)
         totals["targetEstimatedMinutes"] = round(target_estimated_sec / 60, 3) if target_estimated_sec else 0
     else:
@@ -990,6 +1219,7 @@ def build_report(film_data_dir: Path, strict=False, act_id=None):
             "pages": [],
             "targetPageNonRepeatedPlayableChars": list(TARGET_NONREPEATED_SCREENPLAY_CHARS_PER_PAGE),
         }
+        dialogue_readability = {"pages": [], "totals": {}}
 
     for path in block_files:
         blocks = load_blocks(path, root, issues)
@@ -1098,6 +1328,7 @@ def build_report(film_data_dir: Path, strict=False, act_id=None):
         "actId": act_id,
         "totals": totals,
         "pageCapacity": page_capacity,
+        "dialogueReadability": dialogue_readability,
         "literaryScore": literary_score,
         "issues": issues,
     }
@@ -1121,6 +1352,11 @@ def print_human(report):
         "estimatedNonRepeatedPlayableMinutes",
         "minPageNonRepeatedPlayableChars",
         "pagesUnderPlayableMin",
+        "pagesWithDialogue",
+        "pagesUnderDialogueMin",
+        "singleSpeakerDialoguePages",
+        "pagesUnderDialogueTurnMin",
+        "pagesMissingDialogueInterleave",
         "targetEstimatedMinutes",
         "actions",
         "dialogues",

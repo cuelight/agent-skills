@@ -1,0 +1,27 @@
+- block_id: blk_no_interleave_001
+  scene_id: scene_no_interleave
+  order_index: 1
+  block_type: scene_heading
+  text: 内景. 临时问询室 - 午后
+- block_id: blk_no_interleave_002
+  scene_id: scene_no_interleave
+  order_index: 2
+  block_type: action
+  text: 问询室没有窗，墙上的钟停在两点十七分。桌面被擦得太干净，反而露出几道旧刀痕。许宁把杯子放在刀痕旁，杯底没有声音；对面的陈遥看见那一瞬间的克制，把椅子往后挪了半寸。门外有人经过，脚步停了又走，像在确认里面还没有开始真正谈判。
+- block_id: blk_no_interleave_003
+  scene_id: scene_no_interleave
+  order_index: 3
+  block_type: dialogue
+  character_id: char_xu
+  text: 你昨晚没有回家。
+- block_id: blk_no_interleave_004
+  scene_id: scene_no_interleave
+  order_index: 4
+  block_type: dialogue
+  character_id: char_chen
+  text: 你也没有问我该回哪里。
+- block_id: blk_no_interleave_005
+  scene_id: scene_no_interleave
+  order_index: 5
+  block_type: action
+  text: 杯里的水面轻轻晃了一下。许宁没有接第二句话，只把文件夹推到桌子中线，纸角刚好停在旧刀痕上。陈遥看见封面上的日期，原本松开的手指重新扣住椅背，问询室里的空调声突然变得很清楚。门缝下塞进来一张访客牌，牌面朝下滑到两人脚边，背面的编号和文件日期完全相同。许宁终于抬眼，陈遥却先把椅背松开。墙上的钟针忽然跳回两点十六分，杯底这才碰出一声很轻的响，像有人在隔壁房间重放刚才的一分钟，录音灯也跟着亮起。

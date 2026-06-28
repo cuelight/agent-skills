@@ -147,12 +147,14 @@ updated_at: "2026-06-27T10:30:00+08:00"
 3. 阶段性 screenplay draft 完成后，必须执行 Literary Rewrite Loop Engineering（文学精修循环工程）；只有明确的 quick POC / sample / fixture 可跳过，并必须标记 `sample` / `draft_not_rewritten`。
 4. 每轮 Rewrite 后运行 `python .codex/skills/cuelight-drama/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；若报告 `generic_literary_filler`、`spatial_logic_mismatch`、`unexpected_role_mention`、模板、重复、容量或分页 error，按原因继续 Rewrite。
 5. 脚本变绿后，执行 Agent Literary Review Gate（Agent 文学审查门）：Agent 抽读本轮范围内至少 3 个关键 scene；act 级至少覆盖开端、中段、转折、结尾各 1 场。审查要写出 `pass` / `fail`、证据短句和是否允许下游生产；抽读不合格时继续 Rewrite，不能进入 production-ready。
-6. Literary Rewrite 通过后、进入分镜 / 生成 / DOCX 导出前，执行 Commercialization Punch-up Pass（商业化强化环节）和 Commercial Review Gate（商业化审查门）：每场检查 entrance objective（入场目标）、external obstacle（外部阻力）、visible conflict（可见冲突）和 turn/end hook（转折/场尾钩子）。若 `strict ok` 但 Agent 抽读发现同场动作复用、意象空转、冲突未外化或场尾无推进，判定 `fail` 并进入 repair loop（修复循环）。
-7. 进入分镜、生成或 DOCX 导出前，执行 Pagination De-dup Pass（分页去重环节）：根级 `script/pages.yaml` 的多页 scene 必须拆成连续、非重叠 block ranges，同一 `script_path#block_id` 不能被多个 ScriptPage 重复覆盖。Agent 还要抽查跨页阅读连续性，确认没有截断理解、大片空白或复制页冒充容量。
-8. 拆分镜前，沿树形路径维护 `acts/**/act.yaml`、`sequence.yaml`、`scene.yaml`、`beat.yaml`，并更新各级 `index.yaml`。若 production leaves 已存在，Rewrite / Punch-up / Repair 必须保持 `block_id`、pages、`script_refs` 和 production 绑定稳定；无法保持时必须同步修复所有引用。
-9. 生成分镜组、镜头和提示词时，在对应 `seg_xxx/` 目录维护 `segment.yaml`、`script-links.yaml`、`shots.yaml`、`prompt.yaml`、`continuity.yaml`。正文改写后执行 Production Leaves Sync Audit（生产叶节点同步审查），抽查 affected segment 的 `script-links.yaml`、`prompt.yaml` 和 `shots.yaml` 是否追溯最新 screenplay。
-10. 每个正式 gate 都要写入验收报告：双语 gate 名称、工具结果、Agent 抽查对象、文本或结构证据、`pass` / `fail`、下一步许可。只列 `strict ok` 或导出成功而没有 Agent 审查证据，视为 `draft_not_reviewed`。
-11. 写回 CueLight 当前支持的项目、Bible、角色、场景、道具、episode、storyboard 时，继续使用主 skill 和 CLI；本地 film-data 只负责保存电影级结构和可追溯依据。
+6. Literary Rewrite 通过后，执行 Dialogue Readability Gate（对白读感验收门）：以根级 `script/pages.yaml` 为权威，按 `block_refs` 反查真实 blocks，统计每页 dialogue 数、说话人数量、speaker turns 和 action/dialogue 交错；单说话人对白页必须记录独白、广播、系统语音、审讯压迫、仪式宣告或无对手戏等明确例外。
+7. Dialogue Readability 通过后，执行 Action/Suspense Page Gate（动作悬念页验收门）与 Reveal Chain Gate（揭示链验收门）：无对白或少对白页不按 dialogue 数量失败，但必须记录视觉焦点、声音触发、人物反应、动作阻力、危险升级或剪辑动机；页面没有推进时继续 Rewrite。
+8. 进入分镜 / 生成 / DOCX 导出前，执行 Commercialization Punch-up Pass（商业化强化环节）和 Commercial Review Gate（商业化审查门）：每场检查 entrance objective（入场目标）、external obstacle（外部阻力）、visible conflict（可见冲突）和 turn/end hook（转折/场尾钩子）。若 `strict ok` 但 Agent 抽读发现同场动作复用、意象空转、冲突未外化或场尾无推进，判定 `fail` 并进入 repair loop（修复循环）。
+9. 进入分镜、生成或 DOCX 导出前，执行 Pagination De-dup Pass（分页去重环节）：根级 `script/pages.yaml` 的多页 scene 必须拆成连续、非重叠 block ranges，同一 `script_path#block_id` 不能被多个 ScriptPage 重复覆盖。Agent 还要抽查跨页阅读连续性，确认没有截断理解、大片空白或复制页冒充容量。
+10. 拆分镜前，沿树形路径维护 `acts/**/act.yaml`、`sequence.yaml`、`scene.yaml`、`beat.yaml`，并更新各级 `index.yaml`。若 production leaves 已存在，Rewrite / Punch-up / Repair 必须保持 `block_id`、pages、`script_refs` 和 production 绑定稳定；无法保持时必须同步修复所有引用。
+11. 生成分镜组、镜头和提示词时，在对应 `seg_xxx/` 目录维护 `segment.yaml`、`script-links.yaml`、`shots.yaml`、`prompt.yaml`、`continuity.yaml`。正文改写后执行 Production Leaves Sync Audit（生产叶节点同步审查），抽查 affected segment 的 `script-links.yaml`、`prompt.yaml` 和 `shots.yaml` 是否追溯最新 screenplay。
+12. 每个正式 gate 都要写入验收报告：双语 gate 名称、工具结果、Agent 抽查对象、文本或结构证据、`pass` / `fail`、下一步许可。只列 `strict ok` 或导出成功而没有 Agent 审查证据，视为 `draft_not_reviewed`。
+13. 写回 CueLight 当前支持的项目、Bible、角色、场景、道具、episode、storyboard 时，继续使用主 skill 和 CLI；本地 film-data 只负责保存电影级结构和可追溯依据。
 
 ## Core Files
 
@@ -248,6 +250,10 @@ updated_at: "2026-06-27T10:30:00+08:00"
 - 正式 DOCX 正文不显示调试用 `第 N 页` 段落；页码由页脚承担。只有排查分页映射时才使用 `--page-break-per-script-page --show-page-labels`，硬分页审计模式下从 scene 中段开始的页必须补 continuation heading。
 - DOCX 中 dialogue speaker 应显示剧本读者可读的角色名；`character_id` 保持为稳定绑定 ID，导出时从 `story-bible.yaml` 的 `characters[].name` 映射显示名。
 - DOCX gate 由 Agent 最终放行：导出后反读段落或渲染抽查页面，确认角色名、对白、动作、转场和自然分页可读；导出成功本身不能作为验收结论。
+- Dialogue Readability Gate 也以根级 `script/pages.yaml` 为权威：按每个 `block_refs` 反查真实 blocks，逐页统计 `dialogue` 数、说话人数量、speaker turns 和 action/dialogue 交错。互动页默认至少 2 个对白块和 2 个 speaker turns；有对白但只有 1 个说话人的页必须在页面 note 或 `dialogue_exception` / `dialogue_readability_exception` 中说明例外原因。
+- 无对白页不因 `dialogue` 数量失败；但正式页必须能通过 action/suspense page 口径说明页面视觉焦点、声音或物件触发、人物反应、动作阻力和小推进。若只是环境氛围或长动作说明，不能作为 full_page 放行。
+- Reveal chain 抽查以根级页面为单位，确认 `block_refs` 对应 blocks 形成“空间状态 -> 视角/特写/插入 -> 声音或物件变化 -> 人物反应 -> 新危险/选择/剪辑动机”的链条。
+- 硬分页 DOCX 导出用于审计时，必须抽查导出页的实际读感，确认不会从 YAML 上看容量足够、导出后却变成单角色独白页或连续口播页。
 
 ## Index Files
 
@@ -1028,9 +1034,12 @@ updated_at: "2026-06-27T10:18:00+08:00"
 - `cuelight-cli internal film-data duration --project-id <projectId> --strict` 不报告 error；若验收目标是第一幕完整拆解，也不得报告 `cardinality_*` warning。Agent 还必须说明时长是否由真实 screenplay 容量、scene/beat 分布和剧情密度支撑。
 - 从创意类原文生成 screenplay blocks 后，运行 `python .codex/skills/cuelight-drama/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；`action` / `dialogue` 中不应混入创作说明、摘要式对白、模板复读、变量填充式句型、文学化套话、空间逻辑错位、场内角色错置或 `"undefined"` 角色 ID，`literaryScore.score` 应达到 `passingScore`。若报告 `templated_screenplay_pattern`、`repeated_sentence_skeleton`、`synthetic_rewrite_template`、`generic_literary_filler`、`spatial_logic_mismatch` 或 `unexpected_role_mention`，必须先进入 Literary Rewrite Loop，不能进入 production-ready。
 - 验收报告必须记录 Literary Rewrite Loop Engineering（文学精修循环工程）和所有 Agent-Owned Gates（Agent 主导验收门）：本轮范围、红灯 issue、修复动作、strict 结果、Agent 抽查对象、证据短句、`pass` / `fail` 和是否允许下游生产。只有脚本通过且 Agent 审查达到文学级合格线，才可标记 `production_ready`；只列工具结果的报告视为 `draft_not_reviewed`。
+- Dialogue Readability Gate 必须读取 `check_film_screenplay_quality.py --strict --json` 的 `dialogueReadability.pages`；正式页不得报告 `page_dialogue_underfit`、`single_speaker_dialogue_page`、`dialogue_turn_underfit`、`dialogue_action_interleave_missing` 或 `unlocalized_screenplay_term`，除非验收报告写明例外页、例外原因和 Agent 放行证据。
+- Action/Suspense Page Gate 与 Reveal Chain Gate 必须记录无对白页/动作悬念页的抽查证据：视觉焦点、声音触发、人物反应、动作阻力、危险升级或剪辑动机。验收报告不得把“每页必须塞对白”当成规则。
 - 正式 screenplay 通过文学审查后、进入 DOCX / production-ready / 生成阶段前，必须记录 Commercialization Punch-up Pass（商业化强化环节）与 Commercial Review Gate（商业化审查门）：说明关键场的入场目标、外部阻力、可见冲突、场尾钩子和类型承诺如何落到正文事件。若工具 strict 通过但 Agent 抽读发现同场动作复用、意象空转、冲突未外化或场尾无推进，验收结论必须为 `fail`，并记录 repair loop（修复循环）。
 - 正式标称时长必须由真实 screenplay 容量支撑；完整第一幕 1080 秒至少应有约 5760 个 screenplay 字符，并通过 `screenplay_capacity_underfit` 检查。正式分页还必须通过去重后逐页容量检查：每个 ScriptPage 保底 `320` 个非重复可拍字符，推荐 `350-420`；重复模板句、跨页复用长句和复制来的环境描写不计入有效容量。Segment 不得重复绑定同一组 `script_refs` 来填充时长。
 - Literary Rewrite Pass（文学精修环节）或 Commercialization Punch-up Pass（商业化强化环节）后再次运行 duration strict 和 screenplay quality strict；若未新增/删除 block，抽查 segment `script_refs` 应仍指向原 `block_id` 范围，并执行 Production Leaves Sync Audit（生产叶节点同步审查）：抽查 affected segment 的 `script-links.yaml`、`prompt.yaml.source_script_snapshot`、`prompt.yaml.compiled_prompt` 和 `shots.yaml.visual_description` 是否追溯最新 screenplay。
 - 进入分镜、生成或正式 DOCX 导出前，根级 `script/pages.yaml` 不应报告 `duplicate_page_block_ref`；多页 scene 的 ScriptPage 必须覆盖不同 block 区间。
 - 导出正式 screenplay DOCX 前，确认根级 `script/pages.yaml` 可解析且每个 `block_refs` 能找到对应 block；导出后至少反读 DOCX 段落，条件允许时渲染前 3 页检查格式。
+- 中文剧本正文默认使用 `视角：`、`特写：`、`跟拍：`、`声音：`、`画外：`、`旁白：`、`插入：`；DOCX gate 需要检查正文不含 `SOUND`、`INSERT`、`CLOSE ON`、`ANGLE ON`、`MOVING WITH` 这类未本地化提示。
 - 所有本地结构文件可被人类直接打开预览，且文件内容为可直接解析的 YAML。

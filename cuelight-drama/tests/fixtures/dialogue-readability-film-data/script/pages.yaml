@@ -1,0 +1,63 @@
+- script_page_id: sp_001
+  project_id: proj_dialogue_gate
+  film_id: film_dialogue_gate
+  script_version_id: script_v001
+  page_number: 1
+  estimated_duration_sec: 60
+  coverage_level: full_page
+  status: locked
+  block_refs:
+    - scene_id: scene_pass
+      script_path: acts/act_001/sequences/seq_001/scenes/scene_pass/script/blocks.yaml
+      start_block_id: blk_pass_001
+      end_block_id: blk_pass_006
+      page_fraction: 1.0
+      estimated_duration_sec: 60
+
+- script_page_id: sp_002
+  project_id: proj_dialogue_gate
+  film_id: film_dialogue_gate
+  script_version_id: script_v001
+  page_number: 2
+  estimated_duration_sec: 60
+  coverage_level: full_page
+  status: locked
+  block_refs:
+    - scene_id: scene_single_speaker
+      script_path: acts/act_001/sequences/seq_001/scenes/scene_single_speaker/script/blocks.yaml
+      start_block_id: blk_single_001
+      end_block_id: blk_single_004
+      page_fraction: 1.0
+      estimated_duration_sec: 60
+
+- script_page_id: sp_003
+  project_id: proj_dialogue_gate
+  film_id: film_dialogue_gate
+  script_version_id: script_v001
+  page_number: 3
+  estimated_duration_sec: 60
+  coverage_level: full_page
+  status: locked
+  block_refs:
+    - scene_id: scene_no_interleave
+      script_path: acts/act_001/sequences/seq_001/scenes/scene_no_interleave/script/blocks.yaml
+      start_block_id: blk_no_interleave_001
+      end_block_id: blk_no_interleave_005
+      page_fraction: 1.0
+      estimated_duration_sec: 60
+
+- script_page_id: sp_004
+  project_id: proj_dialogue_gate
+  film_id: film_dialogue_gate
+  script_version_id: script_v001
+  page_number: 4
+  estimated_duration_sec: 60
+  coverage_level: full_page
+  status: locked
+  block_refs:
+    - scene_id: scene_unlocalized_term
+      script_path: acts/act_001/sequences/seq_001/scenes/scene_unlocalized_term/script/blocks.yaml
+      start_block_id: blk_term_001
+      end_block_id: blk_term_006
+      page_fraction: 1.0
+      estimated_duration_sec: 60

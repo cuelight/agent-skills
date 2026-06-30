@@ -30,7 +30,12 @@ def powershell_command(runner: str, workspace: Path, prompt: str, final: str, ev
             [
                 f"$stdout = Join-Path $root {ps_quote(stdout)}",
                 f"$stderr = Join-Path $root {ps_quote(stderr)}",
-                "Get-Content $prompt -Raw | claude -p --permission-mode dontAsk --output-format stream-json --include-partial-messages > $stdout 2> $stderr",
+                "Push-Location $root",
+                "try {",
+                "  Get-Content $prompt -Raw | claude -p --permission-mode bypassPermissions --output-format stream-json --include-partial-messages --verbose > $stdout 2> $stderr",
+                "} finally {",
+                "  Pop-Location",
+                "}",
             ]
         )
     elif runner == "opencode":
@@ -38,7 +43,7 @@ def powershell_command(runner: str, workspace: Path, prompt: str, final: str, ev
             [
                 f"$events = Join-Path $root {ps_quote(events)}",
                 f"$stderr = Join-Path $root {ps_quote(stderr)}",
-                "opencode run --format json --file $prompt 'Read prompt.md and complete the requested skill test in this workspace.' > $events 2> $stderr",
+                "opencode run 'Read prompt.md and complete the requested skill test in this workspace.' --format json --dir $root --dangerously-skip-permissions --file $prompt > $events 2> $stderr",
             ]
         )
     else:
@@ -63,14 +68,15 @@ def bash_command(runner: str, workspace: Path, prompt: str, final: str, events: 
     if runner == "claude":
         return (
             f"root='{root}'\n"
-            f"cat \"$root/{prompt}\" | claude -p --permission-mode dontAsk --output-format stream-json "
-            f"--include-partial-messages > \"$root/{stdout}\" 2> \"$root/{stderr}\""
+            f"(cd \"$root\" && cat \"{prompt}\" | claude -p --permission-mode bypassPermissions "
+            f"--output-format stream-json --include-partial-messages --verbose > \"{stdout}\" 2> \"{stderr}\")"
         )
     if runner == "opencode":
         return (
             f"root='{root}'\n"
-            f"opencode run --format json --file \"$root/{prompt}\" "
-            f"'Read prompt.md and complete the requested skill test in this workspace.' > \"$root/{events}\" 2> \"$root/{stderr}\""
+            f"opencode run 'Read prompt.md and complete the requested skill test in this workspace.' "
+            f"--format json --dir \"$root\" --dangerously-skip-permissions --file \"$root/{prompt}\" "
+            f"> \"$root/{events}\" 2> \"$root/{stderr}\""
         )
     return f"root='{root}'\ncat \"$root/{prompt}\" | <agent-command> > \"$root/{stdout}\" 2> \"$root/{stderr}\""
 

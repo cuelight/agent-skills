@@ -24,6 +24,11 @@ def text_from_json_event(event: dict[str, Any]) -> str | None:
                 nested = value.get("text") or value.get("content")
                 if isinstance(nested, str):
                     return nested
+    if event.get("type") == "text":
+        part = event.get("part")
+        if isinstance(part, dict) and part.get("type") == "text":
+            text = part.get("text")
+            return text if isinstance(text, str) else None
     return None
 
 

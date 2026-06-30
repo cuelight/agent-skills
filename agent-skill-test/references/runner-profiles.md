@@ -51,14 +51,28 @@ $root = (Resolve-Path "<workspace>").Path
 $prompt = Join-Path $root "prompt.md"
 $stdout = Join-Path $root "runner-output/stdout.txt"
 $stderr = Join-Path $root "runner-output/stderr.txt"
-Get-Content $prompt -Raw | claude -p --permission-mode dontAsk --output-format stream-json --include-partial-messages > $stdout 2> $stderr
+Push-Location $root
+try {
+  Get-Content $prompt -Raw | claude -p --permission-mode bypassPermissions --output-format stream-json --include-partial-messages --verbose > $stdout 2> $stderr
+} finally {
+  Pop-Location
+}
 ```
 
 Notes:
 
 - `claude -p` is the non-interactive mode.
-- Use `--permission-mode dontAsk` for unattended local tests only in trusted workspaces.
+- Use `--permission-mode bypassPermissions` only for isolated trusted test workspaces that need file writes.
+- Recent Claude CLI versions require `--verbose` with `--output-format stream-json`.
+- Run Claude from the test workspace directory so relative file writes stay inside the isolated workspace.
 - Claude supports `.claude/skills/`, but portable `skills-under-test/` should still be present.
+- To make the evidence easier to inspect, extract the final message after the run:
+
+```powershell
+python agent-skills/agent-skill-test/scripts/extract_final_message.py `
+  --events-jsonl <workspace>/runner-output/stdout.txt `
+  --output <workspace>/runner-output/final.md
+```
 
 ## OpenCode
 
@@ -71,13 +85,23 @@ $root = (Resolve-Path "<workspace>").Path
 $prompt = Join-Path $root "prompt.md"
 $events = Join-Path $root "runner-output/events.jsonl"
 $stderr = Join-Path $root "runner-output/stderr.txt"
-opencode run --format json --file $prompt "Read prompt.md and complete the requested skill test in this workspace." > $events 2> $stderr
+opencode run "Read prompt.md and complete the requested skill test in this workspace." --format json --dir $root --dangerously-skip-permissions --file $prompt > $events 2> $stderr
 ```
 
 Notes:
 
-- OpenCode supports `opencode run` and `--format json`.
+- OpenCode supports `opencode run`, `--format json`, `--file`, and `--dir`.
+- Put the message before `--file`; some OpenCode/CueLight Agent builds parse `--file` as an array and will treat following positional text as another file.
+- Use `--dangerously-skip-permissions` only for isolated trusted test workspaces that need file writes.
 - Do not assume OpenAI-style skill discovery. Prompt it to read `skills-under-test/<skill-name>/SKILL.md`.
+- If the global `opencode` bin is unavailable, record the test as environment-blocked instead of substituting a local fork.
+- Extract the final message after the run:
+
+```powershell
+python agent-skills/agent-skill-test/scripts/extract_final_message.py `
+  --events-jsonl <workspace>/runner-output/events.jsonl `
+  --output <workspace>/runner-output/final.md
+```
 
 ## Custom Runner
 

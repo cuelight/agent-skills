@@ -8,8 +8,8 @@ cuelight-cli workspace bind --project-id <projectId> --root <workspacePath>
 cuelight-cli workspace current --json
 cuelight-cli project update <projectId> --total-episodes <n> --duration <seconds> --json
 cuelight-cli project status <projectId> --json
-cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/proposal.txt --json
-cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/design.txt --json
+cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/staging/import/proposal.txt --json
+cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/staging/import/design.txt --json
 ```
 
 ## 工作区规则

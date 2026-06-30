@@ -1,36 +1,37 @@
 ---
 name: cuelight-drama
-description: CueLight 剧情项目本地 Agent 工作流指引，覆盖短剧、传统番剧和电影项目。Use when creating, adapting, continuing, reviewing, or producing CueLight projects involving project design, episodes, scripts, characters, scenes, props, storyboard scripts, images, or video tasks. If the project type is unclear, confirm whether it is short-drama, anime-series, or film before applying creative rules.
+description: CueLight CLI 入口与项目写回工作流。Use when Codex needs to read or write CueLight projects through cuelight-cli, bind a local workspace, prepare project-local files, import episodes/storyboards/assets metadata, query task/status, or coordinate CueLight project I/O. For creative rules, route short drama work to $cuelight-shortdrama and film work to $cuelight-film.
 ---
 
-这个 Skill 只说明 CueLight 项目的推进方法、类型 profile 和文本/分镜格式。当前项目、工作区根目录、权限和真实状态必须由本地工作区与 `cuelight-cli` 提供。
+这个 Skill 只负责 CueLight 项目 I/O、CLI 合同、工作区绑定、平台字段格式和写回验收；不承载短剧或电影的剧作结构规则。创作、诊断、改写和本地类型元数据先按作品类型读取对应 Skill：
+
+- 短剧、短视频连续剧、网文式短剧改编：使用 `$cuelight-shortdrama`。
+- 电影、长片、短片、电影化 screenplay、film-data：使用 `$cuelight-film`。
 
 ## 使用原则
 
-- **先解析工作区**：进入任意工作区后，第一步执行 `cuelight-cli workspace current --json`。
+- **先解析工作区**：进入任意 CueLight 项目工作区后，第一步执行 `cuelight-cli workspace current --json`。
 - **未绑定不执行业务命令**：若没有 `./.cuelight/workspace.json` 或 `currentProjectId` 为空，只能引导用户执行 `cuelight-cli workspace bind --project-id <id> --root <path>`。
 - **禁止猜项目**：不得从目录名、mock 数据、最近项目、置顶项目或历史聊天猜测当前项目。
 - **显式上下文必须一致**：用户明确给出 projectId 时，仍必须与工作区绑定的 `currentProjectId` 一致；不一致时停止并让用户重新绑定或更正参数。
 - **CLI 是唯一事实入口**：读状态、写设定、写剧集、写角色场景道具、写分镜、查任务，都通过 `cuelight-cli`。
-- **业务请求走统一合同**：公开 CLI 命令只依赖项目、剧集、分镜、任务资源，不让 Agent 决策内部历史结构。
-- **文字类默认由本地 Agent 创作并直写**：本地读取用户给的原稿文件，产出 proposal、design、worldView、stylePrompt、episodes、characters、scenes、props、storyboards，再用 CLI 写回。
+- **文字类先本地产出再写回**：读取用户给的本地原稿或类型 Skill 产物，整理为 proposal、design、worldView、stylePrompt、episodes、characters、scenes、props、storyboards，再用 CLI 写回。
 - **默认不提交媒体生成**：除非用户明确要求，不提交图片、视频或语音任务。
 
-## 类型识别与 Profile
+## 类型路由
 
-开始创作规则前先确定项目类型：
+开始创作规则前先确定作品类型：
 
 1. 读取用户话语、项目 `genre`、`design`、`durationPerEpisode`、`videoAspectRatio` 和原稿形态。
-2. 能明确判断时，选择一个 profile 并读取对应文件。
-3. 类型不明确时，先询问用户确认类型，只给出这三个选项：`短剧`、`番剧`、`电影`。确认后再读取对应 profile 并采用对应节奏、容量和画幅规则。
+2. 能明确判断时，读取对应类型 Skill。
+3. 类型不明确时，只询问用户确认：`短剧` 或 `电影`。
 
-Profile 路由：
+路由规则：
 
-- 短剧：读取 `references/profiles/short-drama.md`。
-- 传统番剧：读取 `references/profiles/anime-series.md`。
-- 电影：读取 `references/profiles/film.md`。
+- 短剧：读取 `$cuelight-shortdrama`，由该 Skill 决定短剧节奏、容量、钩子、分集和本地元数据。
+- 电影：读取 `$cuelight-film`，由该 Skill 决定三幕/八序列、screenplay、film-data、质量 gate 和导出。
 
-通用规则只负责 CueLight 结构化落库契约；剧作结构、节奏、镜头密度、风格方向和三位专家自检都以当前 profile 为准。
+`cuelight-drama` 只负责把类型 Skill 产物转换为 CueLight 平台字段和 CLI 写回命令。
 
 ## 当前项目上下文
 
@@ -60,7 +61,7 @@ cuelight-cli workspace bind --project-id <id> --root <workspacePath>
 
 ## 环境配置
 
-优先使用官方一键安装脚本。安装脚本会把 `cuelight-drama` 等 Agent Skills 安装到用户级全局位置，同时安装 `cuelight-cli`，不依赖当前项目目录。
+优先使用官方一键安装脚本。安装脚本会把 `cuelight-drama`、`cuelight-shortdrama`、`cuelight-film` 等 Agent Skills 安装到用户级全局位置，同时安装 `cuelight-cli`，不依赖当前项目目录。
 
 Windows PowerShell：
 
@@ -101,27 +102,55 @@ cuelight-cli project list
 - 若只需要单次命令使用密钥，可用 `CUELIGHT_API_KEY=... cuelight-cli ...` 或 `cuelight-cli --api-key ...`。
 - 工作区绑定文件只保存当前项目，不保存 API Key。
 
-## 临时文件目录约定
+## 本地目录职责
 
-- 所有临时文本/JSON 文件都放在当前工作区的 `./.cuelight/` 下。
-- 当前项目文件统一使用：`./.cuelight/<projectId>/`。
-- 推荐文件布局：
-  - `./.cuelight/<projectId>/proposal.txt`
-  - `./.cuelight/<projectId>/design.txt`
-  - `./.cuelight/<projectId>/film-three-act-outline.md`（电影项目本地三幕式规划；当前不通过 CLI 写回）
-  - `./.cuelight/<projectId>/film-data/`（电影项目本地影子结构；`.yaml` 原生 YAML 文件，当前不通过 CLI 写回；维护前必须读取 `references/profiles/film-data-local.md` 的多节点、索引和时长汇总规则）
-  - `./.cuelight/<projectId>/world.txt`
-  - `./.cuelight/<projectId>/style-prompt.txt`
-  - `./.cuelight/<projectId>/characters/<name>-desc.txt`
-  - `./.cuelight/<projectId>/characters/<name>-visual.txt`
-  - `./.cuelight/<projectId>/characters/<name>-voice.txt`
-  - `./.cuelight/<projectId>/scenes/<name>-desc.txt`
-  - `./.cuelight/<projectId>/scenes/<name>-visual.txt`
-  - `./.cuelight/<projectId>/props/<name>-desc.txt`
-  - `./.cuelight/<projectId>/props/<name>-visual.txt`
-  - `./.cuelight/<projectId>/episodes/episode-<number>-outline.txt`
-  - `./.cuelight/<projectId>/episodes/episode-<number>-script.txt`
-  - `./.cuelight/<projectId>/storyboards/episode-<number>.json`
+`.cuelight/` 是 CueLight 运行时和导入桥，不是短剧或电影的长期创作元数据目录。
+
+- `./.cuelight/workspace.json`、`./.cuelight/config.json`：工作区绑定与 CLI 配置。
+- `./.cuelight/<projectId>/source/`：`source materialize` 生成的平台原稿副本。
+- `./.cuelight/<projectId>/staging/import/`：写回 CueLight 前的派生文本/JSON 暂存。
+- `./.cuelight/<projectId>/staging/film-data/`：电影 canonical `film-data/` 的导入/校验暂存副本，不作为长期源数据。
+- `./.cuelight/<projectId>/sync/link.json`：仅由 `$cuelight-drama` 在准备 staging 或导入后维护的桥接记录；没有该文件时不得猜测同步状态。
+
+Staging 规则：
+
+- `staging/` 是一次性派生物，不是创作源文件；需要改内容时，先改 `cuelight-projects/<type>/<project-slug>/` 下的 canonical 项目，再重新派生 staging。
+- 不把 `staging/import/storyboards/*.json`、`staging/film-data/**/prompt.yaml`、`staging/film-data/**/script-links.yaml` 的手工修改反向当作 canonical，除非用户明确要求做 merge，并在 `sync/link.json` 记录来源和时间。
+- 外置 Codex 全流程因为 sandbox 限制只写 `.cuelight/<projectId>/staging/` 时，该 staging bundle 只服务本轮 CLI 导入；不生成也不替代 `cuelight-projects/` 长期项目。
+
+`sync/link.json` 最小结构：
+
+```json
+{
+  "version": 1,
+  "type": "shortdrama",
+  "canonicalRoot": "cuelight-projects/shortdrama/example",
+  "stagingRoot": ".cuelight/project-id/staging",
+  "lastPreparedAt": "2026-06-29T00:00:00Z",
+  "lastImportedAt": null
+}
+```
+
+`type` 只允许 `shortdrama` 或 `film`；`canonicalRoot` 可为 `null`，表示当前 staging bundle 来自外置 Codex 一次性工作流，没有长期 canonical 项目。
+
+推荐 import staging 布局：
+
+- `./.cuelight/<projectId>/staging/import/proposal.txt`
+- `./.cuelight/<projectId>/staging/import/design.txt`
+- `./.cuelight/<projectId>/staging/import/world.txt`
+- `./.cuelight/<projectId>/staging/import/style-prompt.txt`
+- `./.cuelight/<projectId>/staging/import/characters/<name>-desc.txt`
+- `./.cuelight/<projectId>/staging/import/characters/<name>-visual.txt`
+- `./.cuelight/<projectId>/staging/import/characters/<name>-voice.txt`
+- `./.cuelight/<projectId>/staging/import/scenes/<name>-desc.txt`
+- `./.cuelight/<projectId>/staging/import/scenes/<name>-visual.txt`
+- `./.cuelight/<projectId>/staging/import/props/<name>-desc.txt`
+- `./.cuelight/<projectId>/staging/import/props/<name>-visual.txt`
+- `./.cuelight/<projectId>/staging/import/episodes/episode-<number>-outline.txt`
+- `./.cuelight/<projectId>/staging/import/episodes/episode-<number>-script.txt`
+- `./.cuelight/<projectId>/staging/import/storyboards/episode-<number>.json`
+
+类型 Skill 独立模式下的 `cuelight-projects/shortdrama/`、`cuelight-projects/film/` 是长期 canonical 创作目录，不要求存在 CueLight projectId；只有写回平台时才派生到 `./.cuelight/<projectId>/staging/`。
 
 ## 通用写法
 
@@ -153,30 +182,30 @@ cuelight-cli workspace bind --project-id <projectId> --root <workspacePath>
 cuelight-cli project create --title "项目名" --json
 cuelight-cli project update <projectId> --total-episodes <n> --duration <seconds> --json
 cuelight-cli project status <projectId> --json
-cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/proposal.txt --json
-cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/design.txt --json
+cuelight-cli project set-proposal <projectId> --file ./.cuelight/<projectId>/staging/import/proposal.txt --json
+cuelight-cli project set-design <projectId> --file ./.cuelight/<projectId>/staging/import/design.txt --json
 
 cuelight-cli bible get <projectId> --json
-cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt --json
-cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
+cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/staging/import/world.txt --json
+cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/staging/import/style-prompt.txt --json
 
-cuelight-cli character create <projectId> --name "角色名" --description-file ./.cuelight/<projectId>/characters/role-desc.txt --base-prompt-file ./.cuelight/<projectId>/characters/role-visual.txt --voice-prompt-file ./.cuelight/<projectId>/characters/role-voice.txt --json
-cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
-cuelight-cli prop create <projectId> --name "道具名" --description-file ./.cuelight/<projectId>/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/props/item-visual.txt --json
+cuelight-cli character create <projectId> --name "角色名" --description-file ./.cuelight/<projectId>/staging/import/characters/role-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/characters/role-visual.txt --voice-prompt-file ./.cuelight/<projectId>/staging/import/characters/role-voice.txt --json
+cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/staging/import/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/scenes/place-visual.txt --json
+cuelight-cli prop create <projectId> --name "道具名" --description-file ./.cuelight/<projectId>/staging/import/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/props/item-visual.txt --json
 
 cuelight-cli episode create <projectId> --title "第一集" --number 1 --summary "分集大纲" --json
-cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-outline.txt --json
-cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-script.txt --json
+cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/staging/import/episodes/episode-1-outline.txt --json
+cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/staging/import/episodes/episode-1-script.txt --json
 cuelight-cli episode status <episodeId> --json
 
-cuelight-cli storyboard import-text <episodeId> --file ./.cuelight/<projectId>/storyboards/episode-1.json --json
+cuelight-cli storyboard import-text <episodeId> --file ./.cuelight/<projectId>/staging/import/storyboards/episode-1.json --json
 cuelight-cli storyboard status <episodeId> --json
 cuelight-cli storyboard get <storyboardId> --json
 ```
 
-## 原稿到落库
+## 原稿或类型产物到落库
 
-用户给本地文本文件时，不把文件交给平台做草稿流程。Agent 直接读取文件，完成以下本地产物后写回：
+用户给本地文本文件或类型 Skill 已生成的本地产物时，不把文件交给平台做草稿流程。Agent 直接读取文件，按类型 Skill 完成内容后写回：
 
 - 制作参数：计划总集数、单集秒数。
 - 项目 proposal、design。
@@ -185,20 +214,13 @@ cuelight-cli storyboard get <storyboardId> --json
 - 角色、场景、道具。
 - 分镜 JSON。
 
-写作要求：
+写回要求：
 
-- 先根据项目类型和原稿规模判断计划总集数、单集秒数和画幅，写回 `project update --total-episodes <n> --duration <seconds>`。
+- 先根据项目类型和产物规模判断计划总集数、单集秒数和画幅，写回 `project update --total-episodes <n> --duration <seconds>`。
 - proposal 说明核心卖点、受众、类型、主冲突、情绪体验和规模边界。
 - design 说明剧集结构、人物弧光、世界规则、主要关系、节奏策略和可生产约束。
 - worldView 写稳定设定，不写临时剧情复述。
-- episode、style、storyboard 的具体写法先读通用 reference，再读当前 profile。
-- 电影项目若维护本地 `film-data/`，先读 `references/profiles/film-data-local.md` 的正向生成流程和 capacity few-shot，再按“三幕/八序列规划 -> Act/Sequence/Scene/Beat 索引 -> screenplay blocks/pages -> Segment/Shot/Prompt/Continuity”生成；交付前用 `cuelight-cli internal film-data duration --strict` 和 screenplay quality strict 获取信号，并由 Agent 主动审查产物、写出证据和放行结论。
-- 电影项目若从创意说明、历史分析、人物小传、treatment、舞台剧或小说片段生成 `film-data/`，先读 `references/profiles/film.md` 的 Creative Source Adaptation Pass；把分析性内容放入 bible/outline/metadata，把 `script/blocks.yaml` 写成真正 screenplay。
-- 电影项目每完成阶段性 screenplay draft 后，必须执行 `references/profiles/film.md` 的 Literary Rewrite Loop Engineering；默认保持本地 metadata、block id 和 production 绑定稳定，并循环到 screenplay quality strict 与 Agent Literary Review Gate 都通过。
-- 电影正式 screenplay 在 Literary Rewrite 通过后、交付或导出前，执行 `references/profiles/film.md` 的 Commercialization Punch-up Pass（商业化强化环节）与 Commercial Review Gate（商业化审查门）；工具 `strict ok` 不能单独放行。
-- 电影 workflow 中所有 gate 都是 Agent-owned：duration、pagination、playable capacity、rewrite、DOCX 和 production-ready 不能只靠工具 `strict ok` 放行，必须有 Agent 抽查对象、证据、`pass` / `fail` 和下一步许可。
-- 电影项目若要求导出 screenplay DOCX，使用 `scripts/export_film_screenplay_docx.py`，以根级 `film-data/script/pages.yaml` 为分页权威；导出前必须完成 Rewrite、screenplay quality strict 和 Agent 审查。
-- 电影项目若验收目标限定为“第一幕完整拆解”，按目标片长和剧情容量预算 `act_001`，生成多 Sequence、多 Scene、多 Beat、4-15 秒 Segment 和多 Shot；第二、三幕可先保持 outline-only。
+- episode、style、storyboard 的具体内容遵守通用 reference 和当前类型 Skill。
 - 角色必须分离保存 `description`、`basePrompt`、`voicePrompt`；场景、道具必须分离保存 `description` 和 `basePrompt`。
 
 ## 纯媒体生成
@@ -246,10 +268,6 @@ cuelight-cli storyboard status <episodeId> --json
 
 ## 参考
 
-- `references/profiles/short-drama.md`
-- `references/profiles/anime-series.md`
-- `references/profiles/film.md`
-- `references/profiles/film-data-local.md`
 - `references/project.md`
 - `references/bible.md`
 - `references/episode.md`

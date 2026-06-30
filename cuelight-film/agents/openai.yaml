@@ -1,0 +1,4 @@
+interface:
+  display_name: "CueLight 电影"
+  short_description: "电影剧本与 film-data 本地维护"
+  default_prompt: "使用 $cuelight-film 把这个电影前提扩展成三幕式结构和第一场 screenplay。"

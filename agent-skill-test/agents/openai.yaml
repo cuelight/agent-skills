@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Skill 测试"
+  short_description: "用 CLI agent 独立测试一个或多个 skill"
+  default_prompt: "使用 $agent-skill-test 为这些 skill 设计并运行独立 CLI smoke 测试。"

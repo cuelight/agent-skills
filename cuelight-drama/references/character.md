@@ -2,8 +2,8 @@
 
 ```bash
 cuelight-cli character list <projectId> --json
-cuelight-cli character create <projectId> --name "角色名" --description-file ./.cuelight/<projectId>/characters/name-desc.txt --base-prompt-file ./.cuelight/<projectId>/characters/name-visual.txt --voice-prompt-file ./.cuelight/<projectId>/characters/name-voice.txt --json
-cuelight-cli character update <projectId> <characterId> --description-file ./.cuelight/<projectId>/characters/name-desc.txt --base-prompt-file ./.cuelight/<projectId>/characters/name-visual.txt --voice-prompt-file ./.cuelight/<projectId>/characters/name-voice.txt --json
+cuelight-cli character create <projectId> --name "角色名" --description-file ./.cuelight/<projectId>/staging/import/characters/name-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/characters/name-visual.txt --voice-prompt-file ./.cuelight/<projectId>/staging/import/characters/name-voice.txt --json
+cuelight-cli character update <projectId> <characterId> --description-file ./.cuelight/<projectId>/staging/import/characters/name-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/characters/name-visual.txt --voice-prompt-file ./.cuelight/<projectId>/staging/import/characters/name-voice.txt --json
 ```
 
 ## 内容要求

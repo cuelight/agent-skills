@@ -9,7 +9,7 @@
 - 先明确片长、类型、主题问题、主角欲望、核心冲突、人物弧光和结局形态。
 - proposal 写故事命题、类型承诺、主角困境、核心关系、视觉世界和观众情绪。
 - design 写三幕结构、八序列结构、场景组或导演段落，说明人物变化、主题递进、声音/摄影/剪辑原则和制作约束。
-- 当前 CueLight 尚无电影三幕式结构化字段；完整三幕式大纲先保存为本地规划文件 `./.cuelight/<projectId>/film-three-act-outline.md`，等待后续系统支持。
+- 独立模式下，完整三幕式大纲默认保存为 `cuelight-projects/film/<project-slug>/film-three-act-outline.md`；写回 CueLight 项目时，如需提供派生副本，保存到 `./.cuelight/<projectId>/staging/import/film-three-act-outline.md`。
 - 结构估时使用电影层级：`ScriptPage -> Scene -> Sequence -> Act -> Film`。`1 页 ≈ 1 分钟` 只用于剧本和片长规划，不直接套到 Shot 或单条 storyboard item。
 - stylePrompt 可写电影摄影、镜头焦段感、自然光或造型光、色彩策略、材质、空间调度、景深和声音基调。
 - 画幅默认按用户或项目设置；电影项目通常优先 16:9 或更宽的横屏构图，不默认竖屏。
@@ -18,15 +18,21 @@
 
 当用户要求“电影大纲”“三幕式”“长片结构”“先做完整结构再写剧本”，或电影项目从创意、梗概、treatment 起步时，先生成或更新本地三幕式大纲，再继续写 project design、episode outline、screenplay 或 storyboard。
 
-本地保存路径固定为：
+独立模式默认保存路径：
 
 ```text
-./.cuelight/<projectId>/film-three-act-outline.md
+cuelight-projects/film/<project-slug>/film-three-act-outline.md
+```
+
+与 CueLight 项目协作时保存路径：
+
+```text
+./.cuelight/<projectId>/staging/import/film-three-act-outline.md
 ```
 
 使用规则：
 
-- 这是本地规划产物，不通过当前 `cuelight-cli` 写回，也不替代 `project set-design`。
+- 这是本地规划产物；独立模式不需要 `cuelight-cli`，与 CueLight 项目协作时也不替代 `project set-design`。
 - `design` 仍写可落库的生产设计；完整三幕结构保存在 `film-three-act-outline.md`。
 - 后续写 episode outline、screenplay、storyboard 前，先读取该文件，确保场景、转折、人物弧光和结局一致。
 - 用户修改结局、主题问题、主角欲望或人物弧光时，先同步更新该文件，再校准正文和分镜。
@@ -106,13 +112,14 @@
 
 ## 本地数据维护
 
-电影项目需要维护比当前平台字段更细的本地影子结构时，读取 `references/profiles/film-data-local.md`。该结构使用 `./.cuelight/<projectId>/film-data/` 下的树形 YAML 文件保存，每个文件直接存原生 YAML，方便机器读取、人类预览和手工微调。
+电影项目需要维护比当前平台字段更细的本地结构时，读取 `references/film-data-local.md`。独立模式默认使用 `cuelight-projects/film/<project-slug>/film-data/`；与 CueLight 项目协作时，只把准备导入或校验的副本放到 `./.cuelight/<projectId>/staging/film-data/`。每个文件直接存原生 YAML，方便机器读取、人类预览和手工微调。
 
 使用边界：
 
 - 当前只维护到 Production：Film、StoryBible、StyleGuide、ScriptVersion、ScriptBlock、ScriptPage、Act、Sequence、Scene、Beat、VideoSegment、Shot、Prompt、ContinuityState。
 - 不维护真实生成任务、资产审核、时间线、导出或成本记录；这些仍以当前平台/CLI 能力为准。
-- `film-three-act-outline.md` 是人类可读的三幕式上游大纲；结构化 Act/Sequence/Scene/Beat/VideoSegment 进入 `film-data/acts/**` 树。
+- `film-three-act-outline.md` 是人类可读的三幕式上游大纲；结构化 Film / StoryBible / StyleGuide / Act / Sequence / Scene / Beat / VideoSegment 进入 `film-data/**` 树。
+- `film-data/film.yaml`、`film-data/story-bible.yaml`、`film-data/style-guide.yaml` 是结构化 canonical；不要在项目顶层维护同名 YAML 作为第二事实源。
 - 不按实体类型维护全局大表；避免 `structure/*.yaml`、`production/*.yaml`、全局 `script/blocks.yaml` 随长片膨胀。
 - 生成顺序固定为：三幕/八序列规划 -> Act/Sequence/Scene/Beat 索引 -> screenplay blocks/pages -> Literary Rewrite Loop Engineering（文学精修循环工程）-> Commercialization Punch-up Pass（商业化强化环节）-> Segment/Shot/Prompt/Continuity。先确定结构数量，再写实体正文；目录 skeleton 只说明文件位置。
 - 生成或改写 screenplay 时，同步对应 scene 子树的 `script/blocks.yaml`；完成正式分页后，再同步 scene 内 `pages.yaml` 和根级 `film-data/script/pages.yaml`。
@@ -120,15 +127,15 @@
 - 当前每个本地 VideoSegment / CueLight storyboard item 固定按 4-15 秒规划，暂不开放超过 15 秒的单条分镜组；更长的剧情 Beat 必须拆成多个连续 VideoSegment。
 - 正式全片页码估算使用根级 `film-data/script/pages.yaml`：每个 ScriptPage 通过 `block_refs` 指向一个或多个 scene 的 `script/blocks.yaml`。scene 内 `script/pages.yaml` 只做本场页段估算；跨场景页码、覆盖索引和 `1 页 ≈ 1 分钟` 汇总以根级 `script/pages.yaml` 为准。DOCX 默认按正文自然流式排版，物理分页由 Word 根据版式生成。
 - 长片默认至少维护 3 个 Act、多个 Sequence、多个 Scene、多个 Beat、多个 VideoSegment 和多个 Shot。只有用户明确要求“最小样例 / POC / 只演示一段”时，才允许每层单节点，并必须在相关状态或说明中标记 `sample` / `incomplete`。
-- 完成本地结构后，用 CLI 内部工具汇总时长：
+- 完成本地结构后，可用 CLI 内部工具按显式目录汇总时长：
 
 ```bash
-cuelight-cli internal film-data duration --project-id <projectId>
-cuelight-cli --json internal film-data duration --project-id <projectId>
-cuelight-cli internal film-data duration --project-id <projectId> --strict
+cuelight-cli internal film-data duration --film-data-dir <film-data>
+cuelight-cli --json internal film-data duration --film-data-dir <film-data>
+cuelight-cli internal film-data duration --film-data-dir <film-data> --strict
 ```
 
-该工具只读本地 YAML，不写回平台；用它检查父子时长汇总、segment 4-15 秒约束和 shot 合计是否匹配 segment。
+该工具只读本地 YAML，不写回平台；用它检查父子时长汇总、segment 4-15 秒约束和 shot 合计是否匹配 segment。与 CueLight 项目协作且数据位于 `./.cuelight/<projectId>/staging/film-data/` 时，也可用 `--project-id <projectId>` 定位 staging 默认目录。
 
 ### Agent-Owned Gates（Agent 主导验收门）
 
@@ -163,14 +170,14 @@ cuelight-cli internal film-data duration --project-id <projectId> --strict
 3. Sequence beats：用八序列规划拆出多个 Sequence，再按每个 Sequence 的戏剧任务决定 Scene 数量。
 4. Scene screenplay：每个 Scene 先写可拍 screenplay blocks，再把动作推进拆成多个 Beat；完整第一幕的 Scene、Beat、Segment 和 Shot 数量应随事件密度变化。
 5. Production leaves：每个 Beat 继续拆成 4-15 秒 VideoSegment，Segment 内用多个 Shot 覆盖动作、视线、声音和剪辑点。
-6. Strict validation：交付前运行 `cuelight-cli internal film-data duration --project-id <projectId> --strict`，确认 index 完整、父子时长可汇总、Segment 与 Shot 时长匹配；Agent 还要说明第一幕时长是否由真实 scene 容量支撑。
+6. Strict validation：交付前运行 `cuelight-cli internal film-data duration --film-data-dir <film-data> --strict`，确认 index 完整、父子时长可汇总、Segment 与 Shot 时长匹配；与 CueLight 项目协作且数据已派生到 staging 时可用 `--project-id <projectId>`。Agent 还要说明第一幕时长是否由真实 scene 容量支撑。
 7. Screenplay quality loop：从创意类原文生成 `film-data/` 后，执行 `Literary Rewrite Loop Engineering`，直到质量脚本无 error，且 Agent 文学审查明确 `pass`。
 
 ### Creative Source Adaptation Pass
 
 当输入是创意说明、历史分析、人物小传、treatment、舞台剧、小说片段或混合材料时，先完成改编判断，再写 screenplay：
 
-1. Source type：标记原文主要形态和可直接使用的材料。历史分析、理论说明和人物心理分析进入 `story-bible.yaml`、`film-three-act-outline.md`、scene/beat metadata。
+1. Source type：标记原文主要形态和可直接使用的材料。历史分析、理论说明和人物心理分析进入 `film-data/story-bible.yaml`、`film-three-act-outline.md`、scene/beat metadata。
 2. Dramatic choice：把抽象论点转成场景选择：谁想要什么、谁阻拦、空间如何施压、物件如何承担记忆或权力、场景结束时关系发生什么变化。
 3. Screenplay scene：只写可拍动作、可听声音、角色真实台词、沉默、物件、走位和空间关系。创作目的、主题解释、导演说明和分镜提示词不进入 `action` 或 `dialogue`。
 4. Production binding：screenplay blocks 稳定后，再从正文拆 Beat、Segment、Shot 和 Prompt；不要用摘要性 treatment 直接生成 production leaves。
@@ -520,9 +527,9 @@ Screenplay / ScriptBlock
 DOCX 导出：
 
 ```bash
-python .codex/skills/cuelight-drama/scripts/export_film_screenplay_docx.py \
-  --film-data-dir .cuelight/<projectId>/film-data \
-  --output .cuelight/<projectId>/screenplay.docx \
+python agent-skills/cuelight-film/scripts/export_film_screenplay_docx.py \
+  --film-data-dir cuelight-projects/film/<project-slug>/film-data \
+  --output cuelight-projects/film/<project-slug>/exports/screenplay.docx \
   --strict
 ```
 

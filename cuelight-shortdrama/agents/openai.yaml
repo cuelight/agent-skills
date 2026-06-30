@@ -1,0 +1,4 @@
+interface:
+  display_name: "CueLight 短剧"
+  short_description: "短剧创作与本地项目产物维护"
+  default_prompt: "使用 $cuelight-shortdrama 把这个故事前提扩展成高留存短剧大纲。"

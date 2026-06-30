@@ -2,8 +2,8 @@
 
 ```bash
 cuelight-cli episode create <projectId> --title "第一集" --number 1 --summary "分集大纲" --json
-cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-outline.txt --json
-cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/episodes/episode-1-script.txt --json
+cuelight-cli episode set-outline <episodeId> --file ./.cuelight/<projectId>/staging/import/episodes/episode-1-outline.txt --json
+cuelight-cli episode set-script <episodeId> --file ./.cuelight/<projectId>/staging/import/episodes/episode-1-script.txt --json
 cuelight-cli episode status <episodeId> --json
 ```
 
@@ -14,11 +14,10 @@ cuelight-cli episode status <episodeId> --json
 
 分集大纲用于指导剧本文本和分镜，不是营销简介。剧本文本必须可拍摄，能提取场景、角色、道具、对白、动作和声音触发。
 
-写 episode 前先读取当前类型 profile：
+写 episode 前先读取当前类型 Skill：
 
-- 短剧：`references/profiles/short-drama.md`
-- 番剧：`references/profiles/anime-series.md`
-- 电影：`references/profiles/film.md`
+- 短剧：`$cuelight-shortdrama`
+- 电影：`$cuelight-film`
 
 若项目类型不明确，先确认类型，再写 outline 或 script。
 
@@ -31,7 +30,7 @@ cuelight-cli episode status <episodeId> --json
 - 本段涉及的关键角色、场景和道具。
 - 与前后内容的边界和衔接方式。
 
-不要只写“主角经历困难并成长”这类不可拍摘要。不同类型的结构模板由 profile 决定：短剧可用强钩子与反转，番剧可用 A/B part 或场景段落，电影可用场景组或序列推进。
+不要只写“主角经历困难并成长”这类不可拍摘要。不同类型的结构模板由类型 Skill 决定：短剧可用强钩子与反转，电影可用场景组或序列推进。
 
 ## Script / Content
 
@@ -54,12 +53,12 @@ cuelight-cli episode status <episodeId> --json
 - 每个 storyboard item 都应能追溯到正文中的动作、对白、道具、屏幕信息、声音触发或情绪停顿。
 - 如果正文只有概述句、小说化 treatment 或剧情说明，先补成可拍台词、动作、空间调度、道具信息、声音和情绪变化。
 - 无对白段落可以成立，但必须有清楚的视觉动作、情绪变化、环境声或剪辑目的。
-- 传统电影正文按自然场次组织，不需要为了 12 条 storyboard item 机械切成 12 段；分镜从场次、动作和情绪推进中提炼。
+- 电影正文按自然场次组织，不需要为了 12 条 storyboard item 机械切成 12 段；分镜从场次、动作和情绪推进中提炼。
 - 若用户要求扩写或重写剧本，先更新正文，再同步重做或校准分镜；不要让旧分镜继续承载新正文没有的关键剧情。
 
 ## 三位专家自检
 
-写完 outline 和 script 后，按当前 profile 的三位专家自检。发现阻断问题时先修剧本，再生成 storyboard。
+写完 outline 和 script 后，按当前类型 Skill 的专家自检。发现阻断问题时先修剧本，再生成 storyboard。
 
 通用验收：
 
@@ -69,7 +68,7 @@ cuelight-cli episode status <episodeId> --json
 
 ## 推荐格式
 
-每集正文推荐按“场景/时间/人物 + 动作行 + 对白 + 道具/屏幕信息 + 声音/停顿”组织。可用传统剧本格式、番剧分场格式、电影场景格式或短视频时间码格式，但必须能直接提取场景、角色、道具、对白和动作。电影项目的更完整 few-shot 见 `references/profiles/film.md`。
+每集正文推荐按“场景/时间/人物 + 动作行 + 对白 + 道具/屏幕信息 + 声音/停顿”组织。可用传统剧本格式、电影场景格式或短视频时间码格式，但必须能直接提取场景、角色、道具、对白和动作。电影项目的更完整 few-shot 见 `$cuelight-film`。
 
 传统剧本示例：
 
@@ -92,5 +91,5 @@ cuelight-cli episode status <episodeId> --json
 - 内容能自然拆成目标时长对应的 storyboard item，且不需要借后续内容补时长。
 - 每个 storyboard item 都能追溯到正文中的动作、对白、道具、屏幕信息、声音触发或情绪停顿。
 - 正文不是为了 storyboard item 数量机械分段；storyboard 也没有替正文新增关键剧情、人物关系或结局变化。
-- 当前 profile 的三位专家自检无阻断问题。
+- 当前类型 Skill 的专家自检无阻断问题。
 - 不因写剧本文本而提交图片、视频或语音任务。

@@ -1,0 +1,84 @@
+---
+name: cuelight-shortdrama
+description: CueLight 短剧创作与本地元数据维护工作流。适用于短剧、短视频连续剧、网文式短剧改编、分集大纲、短视频剧情、爽文/虐恋/甜宠/复仇/悬疑/权谋/喜剧短剧结构、人物设计、钩子、卡点、信息差、情绪曲线、剧本诊断、改写、单集剧本、Fountain 缩进正文、AI 视频/故事板源文案设计，以及需要脱离 CLI 在本地维护短剧项目产物的任务。写回 CueLight 项目时再配合 $cuelight-drama。
+---
+
+# CueLight 短剧创作
+
+使用本 Skill 设计以留存、情绪兑现和连续追更为目标的短剧。默认把创作理解为 **造梦**：观众购买的是安全、清晰、强烈的情绪体验，而不是抽象说教或文学解释。
+
+本 Skill 可脱离 `cuelight-cli` 独立工作，默认在本地维护短剧 metadata、结构文件和交付产物。只有用户明确要求写回 CueLight 项目时，才再加载 `$cuelight-drama` 并按 CLI 合同转换为平台字段。
+
+## 核心流程
+
+1. **锁定产品形态**
+   - 判断形式：短剧、短视频连续剧、网文式短剧改编、单集剧本或分镜源文本。
+   - 判断主情绪：爽、虐、甜、燃、惧、笑、悬疑、震撼，或混合情绪。
+   - 用一句话写出观众承诺：“这个故事让观众感到 ___。”
+
+2. **选择故事发动机**
+   - **人物驱动**：适合长期陪伴、爱情、成长、角色魅力和 IP 型故事。
+   - **事件驱动**：适合悬疑、危机、生存、复仇行动、权谋局和强情节故事。
+   - **情绪驱动**：适合短剧、付费卡点、爽文、虐恋、爆款片段和高频钩子。
+   - 如果不确定，默认优先情绪驱动，再用人物和事件工具补强。
+
+3. **搭建观众的梦**
+   - 找出现实缺口：地位、爱、正义、金钱、安全感、被认可、掌控感、复仇、归属。
+   - 转成幻想兑现：被偏爱、打脸、逆袭、破案、复仇、被救赎、碾压、获得选择权。
+   - 让逻辑服务情绪：逻辑用于维持沉浸，不用于替代情绪兑现。
+
+4. **设计故事机器**
+   - 用预期管理制造“现实状态”和“期望状态”的差距。
+   - 用信息差决定谁知道什么：观众、主角、反派、配角。
+   - 用节奏控制决定哪里放慢、加速、阻断、回味。
+   - 使用基础循环：压力 -> 引燃 -> 爆发 -> 展示。
+
+5. **按用户需要交付**
+   - 需要大纲：输出前提、观众承诺、人物、十序列/分集大纲、集尾钩子。
+   - 需要场景/剧本：输出可拍的动作、台词、画面重点和卡点。
+   - 需要诊断：按留存风险列问题：承诺不清、钩子弱、压力低、信息差乱、情绪平、沉浸破。
+   - 需要本地落盘：按 workflow 创建标准产物，逐阶段填充内容并写质量检查。
+   - 需要写回 CueLight：先完成本地短剧产物，再使用 `$cuelight-drama` 写入项目、bible、episode、角色、场景、道具和 storyboard。
+
+## 按需读取参考
+
+- 从零设计或选择故事发动机时，读取 `references/framework.md`。
+- 处理钩子、信息差、节奏、人物、事件和情绪设计时，读取 `references/techniques.md`。
+- 需要具体交付格式、改写或检查表时，读取 `references/templates.md`。
+- 需要深度诊断、完整大纲、系统性返工，或用教程原文蒸馏工具校准创作时，读取 `references/source-distilled.md`。
+- 用户要求“创作一个剧本”“完整项目”“本地落盘”“生成产物”“保存为文件”时，读取 `references/workflow.md` 和 `references/artifacts.md`。
+- 写单集剧本、分集正文或剧本正文时，读取 `references/screenplay-format.md` 和 `references/episode-examples.md`。
+- 需要 CueLight 短剧容量、画幅、stylePrompt、storyboard 密度和专家自检时，读取 `references/cuelight-profile.md`。
+- 需要校准本地落盘的完成形态或示例写法时，读取 `references/few-shots.md`。
+- 需要快速创建空白项目结构时，在用户当前工作区运行 `scripts/create_shortdrama_project.py`；优先显式传入绝对 `--root <workspace>/cuelight-projects/shortdrama`，再按产物逐项填充内容。
+- 只有用户明确要求分镜、AI 视频或 storyboard 时，才启用 `storyboard/` 支线。
+
+## 输出规则
+
+- 新建故事时，先写观众承诺和主情绪。
+- 本地落盘时，默认输出到 `cuelight-projects/shortdrama/<project-slug>/`。
+- `cuelight-projects/` 是长期项目资料目录，不是临时输出目录；不要默认加入 `.gitignore`。
+- 独立模式不要求 CueLight projectId；`manifest.json` 是本地短剧项目的机器可读入口。
+- 本地落盘时，先写 `00-brief.md` 到 `04-season-outline.md`，再写 `episodes/`，并持续更新 `quality-check.md`。
+- 每个 workflow 阶段都要做质量闸门；阶段状态为 `需返工` 时，先返工当前阶段再继续。
+- 写完整项目时优先按 `workflow.md` 阶段推进；只有深度诊断、重构或完整大纲校准时再加载 `source-distilled.md`。
+- `exports/full-script.md` 是固定占位产物；只有用户要求整稿、汇总稿或交付稿时才填充完整内容。
+- 优先写具体冲突和可见动作，少写抽象解释。
+- `episodes/ep-xxx.md` 的剧本正文默认使用 `fountain` 代码块承载中文好莱坞式格式，保留缩进对齐。
+- 每一集或每一场都至少改变一件事：地位、关系、危险、秘密、资源或情绪温度。
+- 短剧集尾必须留下未回答的问题、即将碰撞的危机、身份反转、秘密揭露或情绪阻断。
+- 面向 AI 视频/故事板时，才写可视化 beat：谁出现、站在哪里、做什么、镜头看什么。
+- 写回 CueLight 前，把本地 metadata 派生到 `./.cuelight/<projectId>/staging/import/`，再映射为 `$cuelight-drama` 的 `proposal`、`design`、`worldView`、`stylePrompt`、episodes、characters、scenes、props 和 storyboards。
+- 不直接维护 `.cuelight/<projectId>/staging/` 里的内容；发现 staging 与本地项目不一致时，以 `cuelight-projects/shortdrama/<project-slug>/` 为准重新派生。
+
+## 质量线
+
+交付前检查：
+
+- 开头是否立刻有钩子。
+- 观众是否知道接下来要期待什么。
+- 主角是否有可执行的欲望或伤口。
+- 反派或障碍是否主动制造压力。
+- 信息差是否是故意设计的，而不是误写出来的。
+- 情绪兑现是否通过动作、台词、身份变化或公众反应被看见。
+- 下一个 beat 是否比上一个更难、更清楚或情绪更强。

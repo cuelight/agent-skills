@@ -1,6 +1,6 @@
 # Film Data Local
 
-用于 CueLight 电影项目的本地影子结构维护。它把 `agent-skills/film-data.md` 中从 Film 到 Production 的核心链路压缩成本地 YAML 文件约定，方便 Agent 在正式系统支持前维护电影级结构。
+用于 CueLight 电影项目或独立电影项目的本地结构维护。它把从 Film 到 Production 的核心链路压缩成本地 YAML 文件约定，方便 Agent 维护电影级结构。
 
 本文件只覆盖：
 
@@ -8,11 +8,15 @@
 Film -> StoryBible -> StyleGuide -> ScriptVersion -> ScriptBlock -> ScriptPage -> Act -> Sequence -> Scene -> Beat -> VideoSegment -> Shot -> Prompt -> ContinuityState
 ```
 
-不维护生成任务、资产审核、时间线、导出、成本记录。提交媒体生成、查询任务、资产选版仍走当前 `cuelight-cli` 和平台事实。
+不维护生成任务、资产审核、时间线、导出、成本记录。独立模式只维护本地文件；提交媒体生成、查询任务、资产选版或写回平台时再走 `$cuelight-drama`、`cuelight-cli` 和平台事实。
 
 ## 存储原则
 
-- 根目录固定为 `./.cuelight/<projectId>/film-data/`。
+- 独立模式默认根目录为 `cuelight-projects/film/<project-slug>/film-data/`。
+- 与 CueLight 项目协作时，根目录为 `./.cuelight/<projectId>/staging/film-data/`，它只是 canonical film-data 的导入/校验暂存副本。
+- `film-data/` 是电影项目的结构化 canonical 根；`film.yaml`、`story-bible.yaml`、`style-guide.yaml` 只在本目录维护。不要在项目顶层再创建同名 YAML 作为第二事实源。
+- 项目顶层 `manifest.json` 只保存 artifact 路由、状态和少量索引；不要复制 `film.yaml`、`story-bible.yaml` 或 `style-guide.yaml` 的正文内容。
+- 若遇到旧项目顶层 `film-metadata.yaml`、`story-bible.yaml`、`style-guide.yaml`，先合并进 `film-data/film.yaml`、`film-data/story-bible.yaml`、`film-data/style-guide.yaml`，再继续质量检查、DOCX 导出或 CueLight staging 派生。
 - 所有本地结构文件都使用 `.yaml`，每个 `.yaml` 文件只保存一个 YAML object 或 YAML array，不再包 Markdown 标题或 fenced block。
 - 默认按电影叙事树组织目录：`Act -> Sequence -> Scene -> Beat -> VideoSegment`。长片内容按父子树展开，避免实体类型全局大表。
 - 每级目录可以有一个 `index.yaml`，只保存子节点引用、顺序、标题、状态和文件路径；`index.yaml` 不保存大段 screenplay、prompt、shot 或 continuity 正文。
@@ -49,7 +53,7 @@ Film -> StoryBible -> StyleGuide -> ScriptVersion -> ScriptBlock -> ScriptPage -
 1. 先定片长预算：`film.yaml.final_target_duration_sec` 记录最终长片目标；完整 `act_001` 推荐占全片 18%-30%。90 分钟长片的第一幕通常约 16-27 分钟。
 2. 再定叙事容量：按第一幕事件阶段拆 Sequence，按地点/时间/人物组合/戏剧目标拆 Scene，按动作、信息、关系或情绪转折拆 Beat。
 3. 再落 production 叶子：Beat 按 4-15 秒拆 VideoSegment；每个 Segment 通常包含 2-5 个 Shot，并让 Shot 时长合计解释 Segment 时长。
-4. 最后跑 `cuelight-cli internal film-data duration --project-id <projectId> --strict`，用汇总结果确认父子时长一致。
+4. 最后跑 `cuelight-cli internal film-data duration --film-data-dir <film-data> --strict`，用汇总结果确认父子时长一致；与 CueLight 项目协作且数据位于 `./.cuelight/<projectId>/staging/film-data/` 时，也可用 `--project-id <projectId>`。
 
 验收下限只用于兜底：`act_001` 至少 2 个 Sequence；每个第一幕 Sequence 至少 2 个 Scene；每个第一幕 Scene 至少 2 个 Beat；超过 15 秒的 Beat 至少拆 2 个 Segment。实际生成应按剧情容量自然变化。
 
@@ -71,15 +75,15 @@ Self-check：
 - 根级 `script/pages.yaml` 是 screenplay 层估时来源，用于和 Film / Act / Sequence 汇总交叉检查；它不直接替代 Shot 或 Segment 时长。
 - 默认允许 2 秒以内的四舍五入误差；超过误差时必须解释或修正。
 
-本地校验使用 CLI 内部工具：
+可使用 CLI 内部工具按显式目录做时长汇总：
 
 ```bash
-cuelight-cli internal film-data duration --project-id <projectId>
-cuelight-cli --json internal film-data duration --project-id <projectId>
-cuelight-cli internal film-data duration --project-id <projectId> --strict
+cuelight-cli internal film-data duration --film-data-dir <film-data>
+cuelight-cli --json internal film-data duration --film-data-dir <film-data>
+cuelight-cli internal film-data duration --film-data-dir <film-data> --strict
 ```
 
-该命令只读 `./.cuelight/<projectId>/film-data/`，汇总各层数量和秒数，并报告父子时长不一致、segment 超出 4-15 秒、shot 合计不等于 segment、缺失文件或 YAML 解析失败等问题。
+该命令只读本地 YAML，汇总各层数量和秒数，并报告父子时长不一致、segment 超出 4-15 秒、shot 合计不等于 segment、缺失文件或 YAML 解析失败等问题。与 CueLight 项目协作且数据位于 `./.cuelight/<projectId>/staging/film-data/` 时，也可用 `--project-id <projectId>` 定位 staging 默认目录。
 
 基础格式。实际文件例如 `film.yaml` 只保存下面的 YAML 内容，不再包 Markdown 标题或 fenced block：
 
@@ -98,7 +102,7 @@ updated_at: "2026-06-27T10:30:00+08:00"
 推荐默认树形布局：
 
 ```text
-./.cuelight/<projectId>/film-data/
+cuelight-projects/film/<project-slug>/film-data/
   film.yaml
   story-bible.yaml
   style-guide.yaml
@@ -136,16 +140,22 @@ updated_at: "2026-06-27T10:30:00+08:00"
                       continuity.yaml
 ```
 
+与 CueLight 项目协作时，可使用同一树形布局保存到：
+
+```text
+./.cuelight/<projectId>/staging/film-data/
+```
+
 本地结构只覆盖 Production 之前的影子数据。若用户要求提交视频生成、审核资产、整理成片顺序或导出成片，切回当前平台/CLI 能力或说明该本地结构暂不覆盖。
 
 旧式全局聚合文件不再作为默认结构：使用树形子目录替代 `structure/acts.yaml`、`structure/scenes.yaml`、`production/shots.yaml`、`production/prompts.yaml`、全局 `script/blocks.yaml` 这类会随长片规模膨胀的叶子文件。
 
 ## Workflow
 
-1. 从电影创意、梗概或 treatment 起步时，先维护 `film.yaml`、`story-bible.yaml`、`style-guide.yaml` 和 `film-three-act-outline.md`。
+1. 从电影创意、梗概或 treatment 起步时，先维护 `film-data/film.yaml`、`film-data/story-bible.yaml`、`film-data/style-guide.yaml` 和顶层 `film-three-act-outline.md`。
 2. 写阶段性 screenplay draft 时，更新根级 `script/versions.yaml`，并把正文块写入对应场景目录的 `scene_xxx/script/blocks.yaml`。阶段可以是单个 scene、一个 sequence、`act_001` 或其他明确交付范围。
 3. 阶段性 screenplay draft 完成后，必须执行 Literary Rewrite Loop Engineering（文学精修循环工程）；只有明确的 quick POC / sample / fixture 可跳过，并必须标记 `sample` / `draft_not_rewritten`。
-4. 每轮 Rewrite 后运行 `python .codex/skills/cuelight-drama/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；若报告 `generic_literary_filler`、`spatial_logic_mismatch`、`unexpected_role_mention`、模板、重复、容量或分页 error，按原因继续 Rewrite。
+4. 每轮 Rewrite 后运行 `python agent-skills/cuelight-film/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；若报告 `generic_literary_filler`、`spatial_logic_mismatch`、`unexpected_role_mention`、模板、重复、容量或分页 error，按原因继续 Rewrite。
 5. 脚本变绿后，执行 Agent Literary Review Gate（Agent 文学审查门）：Agent 抽读本轮范围内至少 3 个关键 scene；act 级至少覆盖开端、中段、转折、结尾各 1 场。审查要写出 `pass` / `fail`、证据短句和是否允许下游生产；抽读不合格时继续 Rewrite，不能进入 production-ready。
 6. Literary Rewrite 通过后，执行 Dialogue Readability Gate（对白读感验收门）：以根级 `script/pages.yaml` 为权威，按 `block_refs` 反查真实 blocks，统计每页 dialogue 数、说话人数量、speaker turns 和 action/dialogue 交错；单说话人对白页必须记录独白、广播、系统语音、审讯压迫、仪式宣告或无对手戏等明确例外。
 7. Dialogue Readability 通过后，执行 Action/Suspense Page Gate（动作悬念页验收门）与 Reveal Chain Gate（揭示链验收门）：无对白或少对白页不按 dialogue 数量失败，但必须记录视觉焦点、声音触发、人物反应、动作阻力、危险升级或剪辑动机；页面没有推进时继续 Rewrite。
@@ -1017,7 +1027,7 @@ updated_at: "2026-06-27T10:18:00+08:00"
 - 文学精修若新增、删除或重排 block，必须同步更新 scene 内 `pages.yaml`、根级 `script/pages.yaml`、受影响 segment 的 `script_refs`、`script-links.yaml`、`prompt.yaml.source_script_snapshot`，并重新检查所有引用的 `start_block_id` / `end_block_id`。
 - 重写某个分镜组时，只更新对应 `seg_xxx/` 子树；除非剧情结构改变，其他 segment 文件保持稳定。若重写后超过 15 秒，拆成多个连续 segment，单个分镜组仍保持 4-15 秒。
 - 如果镜头内容新增/删除角色、场景或关键道具，同时更新该 segment 的 `segment.yaml`、`shots.yaml`、`prompt.yaml` 引用，并确保平台 storyboard JSON 的结构化绑定仍正确。
-- 改任何时长字段后，运行 `cuelight-cli internal film-data duration --project-id <projectId>` 检查汇总；准备交付或批量写回前使用 `--strict`。
+- 改任何时长字段后，优先运行 `cuelight-cli internal film-data duration --film-data-dir <film-data>` 检查汇总；与 CueLight 项目协作且数据位于 `./.cuelight/<projectId>/staging/film-data/` 时也可用 `--project-id <projectId>`。准备交付或批量写回前使用 `--strict`。
 - 若已有平台资源 ID，保留在 `platform_ref` 中；本地 ID 与平台 ID 分层记录。
 - 到 `production` 为止停止：真实模型调用、资产审核结果、成片时间线或导出状态仍由平台/CLI 记录。
 
@@ -1031,8 +1041,8 @@ updated_at: "2026-06-27T10:18:00+08:00"
 - 每个 `shots.yaml` 的 `duration_target_sec` 合计等于对应 `segment.yaml.duration_target_sec`，误差不超过 2 秒。
 - 每个 `prompt.yaml` 都有 `source_refs`、`source_script_snapshot`、`compiled_prompt`、`negative_prompt`、`input_asset_ids`。
 - `continuity.yaml` 能说明当前 segment 的进入或离开状态。
-- `cuelight-cli internal film-data duration --project-id <projectId> --strict` 不报告 error；若验收目标是第一幕完整拆解，也不得报告 `cardinality_*` warning。Agent 还必须说明时长是否由真实 screenplay 容量、scene/beat 分布和剧情密度支撑。
-- 从创意类原文生成 screenplay blocks 后，运行 `python .codex/skills/cuelight-drama/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；`action` / `dialogue` 中不应混入创作说明、摘要式对白、模板复读、变量填充式句型、文学化套话、空间逻辑错位、场内角色错置或 `"undefined"` 角色 ID，`literaryScore.score` 应达到 `passingScore`。若报告 `templated_screenplay_pattern`、`repeated_sentence_skeleton`、`synthetic_rewrite_template`、`generic_literary_filler`、`spatial_logic_mismatch` 或 `unexpected_role_mention`，必须先进入 Literary Rewrite Loop，不能进入 production-ready。
+- `cuelight-cli internal film-data duration --film-data-dir <film-data> --strict` 不报告 error；与 CueLight 项目协作时可用 `--project-id <projectId>` 定位 staging 默认目录。若验收目标是第一幕完整拆解，也不得报告 `cardinality_*` warning。Agent 还必须说明时长是否由真实 screenplay 容量、scene/beat 分布和剧情密度支撑。
+- 从创意类原文生成 screenplay blocks 后，运行 `python agent-skills/cuelight-film/scripts/check_film_screenplay_quality.py --film-data-dir <film-data> --strict`；`action` / `dialogue` 中不应混入创作说明、摘要式对白、模板复读、变量填充式句型、文学化套话、空间逻辑错位、场内角色错置或 `"undefined"` 角色 ID，`literaryScore.score` 应达到 `passingScore`。若报告 `templated_screenplay_pattern`、`repeated_sentence_skeleton`、`synthetic_rewrite_template`、`generic_literary_filler`、`spatial_logic_mismatch` 或 `unexpected_role_mention`，必须先进入 Literary Rewrite Loop，不能进入 production-ready。
 - 验收报告必须记录 Literary Rewrite Loop Engineering（文学精修循环工程）和所有 Agent-Owned Gates（Agent 主导验收门）：本轮范围、红灯 issue、修复动作、strict 结果、Agent 抽查对象、证据短句、`pass` / `fail` 和是否允许下游生产。只有脚本通过且 Agent 审查达到文学级合格线，才可标记 `production_ready`；只列工具结果的报告视为 `draft_not_reviewed`。
 - Dialogue Readability Gate 必须读取 `check_film_screenplay_quality.py --strict --json` 的 `dialogueReadability.pages`；正式页不得报告 `page_dialogue_underfit`、`single_speaker_dialogue_page`、`dialogue_turn_underfit`、`dialogue_action_interleave_missing` 或 `unlocalized_screenplay_term`，除非验收报告写明例外页、例外原因和 Agent 放行证据。
 - Action/Suspense Page Gate 与 Reveal Chain Gate 必须记录无对白页/动作悬念页的抽查证据：视觉焦点、声音触发、人物反应、动作阻力、危险升级或剪辑动机。验收报告不得把“每页必须塞对白”当成规则。

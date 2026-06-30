@@ -2,8 +2,8 @@
 
 ```bash
 cuelight-cli prop list <projectId> --json
-cuelight-cli prop create <projectId> --name "道具名" --description-file ./.cuelight/<projectId>/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/props/item-visual.txt --json
-cuelight-cli prop update <projectId> <propId> --description-file ./.cuelight/<projectId>/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/props/item-visual.txt --json
+cuelight-cli prop create <projectId> --name "道具名" --description-file ./.cuelight/<projectId>/staging/import/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/props/item-visual.txt --json
+cuelight-cli prop update <projectId> <propId> --description-file ./.cuelight/<projectId>/staging/import/props/item-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/props/item-visual.txt --json
 ```
 
 ## 内容要求

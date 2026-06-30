@@ -2,8 +2,8 @@
 
 ```bash
 cuelight-cli scene list <projectId> --json
-cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
-cuelight-cli scene update <projectId> <sceneId> --description-file ./.cuelight/<projectId>/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/scenes/place-visual.txt --json
+cuelight-cli scene create <projectId> --name "场景名" --description-file ./.cuelight/<projectId>/staging/import/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/scenes/place-visual.txt --json
+cuelight-cli scene update <projectId> <sceneId> --description-file ./.cuelight/<projectId>/staging/import/scenes/place-desc.txt --base-prompt-file ./.cuelight/<projectId>/staging/import/scenes/place-visual.txt --json
 ```
 
 ## 内容要求

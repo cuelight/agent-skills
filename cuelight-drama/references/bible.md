@@ -2,8 +2,8 @@
 
 ```bash
 cuelight-cli bible get <projectId> --json
-cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/world.txt --json
-cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/style-prompt.txt --json
+cuelight-cli bible set-world <projectId> --file ./.cuelight/<projectId>/staging/import/world.txt --json
+cuelight-cli bible set-style-prompt <projectId> --file ./.cuelight/<projectId>/staging/import/style-prompt.txt --json
 ```
 
 ## WorldView

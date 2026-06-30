@@ -491,7 +491,7 @@ def print_human(report):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Export local film screenplay pages to DOCX.")
-    parser.add_argument("--film-data-dir", required=True, help="Path to .cuelight/<projectId>/film-data")
+    parser.add_argument("--film-data-dir", required=True, help="Path to local film-data directory")
     parser.add_argument("--output", required=True, help="Output .docx path")
     parser.add_argument("--title", help="Optional document title paragraph")
     parser.add_argument("--strict", action="store_true", help="Return non-zero for errors and duplicate block exports")

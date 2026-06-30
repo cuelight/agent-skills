@@ -1386,7 +1386,7 @@ def print_human(report):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Check local film screenplay block quality.")
-    parser.add_argument("--film-data-dir", required=True, help="Path to .cuelight/<projectId>/film-data")
+    parser.add_argument("--film-data-dir", required=True, help="Path to local film-data directory")
     parser.add_argument("--act-id", help="Optional act scope such as act_002")
     parser.add_argument("--json", action="store_true", help="Print structured JSON")
     parser.add_argument("--strict", action="store_true", help="Exit non-zero when errors are found")
